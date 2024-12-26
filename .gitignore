@@ -1,0 +1,73 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+.env/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Django stuff
+*.log
+staticfiles/
+local_settings.py
+
+# Media uploads
+media/
+
+# SQL database files
+*.sqlite3
+
+# Virtual environment
+.venv/
+
+# VSCode files
+.vscode/
+
+# JetBrains IDE files
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
+# Test coverage
+.coverage
+*.cover
+coverage.xml
+*.py,cover
+
+# Migrations
+*/migrations/*
+!*/migrations/__init__.py
+
+# Celery beat schedule
+celerybeat-schedule
+
+# Jupyter Notebook files
+.ipynb_checkpoints/
+
+# MyPy cache
+.mypy_cache/
+
+# Pipfile.lock
+Pipfile.lock
+
+# Node.js modules
+node_modules/
+
+# Static analysis
+pyrightconfig.json
