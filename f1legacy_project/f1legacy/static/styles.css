@@ -1,0 +1,80 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #fff;
+}
+
+a {
+    text-decoration: none;
+    color: #fff;
+}
+
+a:hover {
+    color: #ff1801; 
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1em 2em;
+    background-color: #111;
+    border-bottom: 2px solid #ff1801;
+}
+
+.navbar .logo img {
+    height: 40px;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 1.5em;
+}
+
+.navbar ul li {
+    display: inline;
+}
+
+
+.hero {
+    text-align: center;
+    padding: 4em 1em;
+    background: url('/static/hero-bg.jpg') no-repeat center center/cover;
+}
+
+.hero h1 {
+    font-size: 3rem;
+    text-transform: uppercase;
+    margin-bottom: 1em;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 2em;
+}
+
+.hero button {
+    background-color: #ff1801;
+    color: #fff;
+    border: none;
+    padding: 0.8em 1.5em;
+    font-size: 1rem;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.hero button:hover {
+    background-color: #fff;
+    color: #ff1801;
+}
+
+footer {
+    text-align: center;
+    padding: 1em;
+    background-color: #111;
+    border-top: 2px solid #ff1801;
+    margin-top: 2em;
+}

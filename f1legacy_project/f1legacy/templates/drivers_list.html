@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drivers - F1 Legacy</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+    <header class="navbar">
+        <h1>F1 Drivers</h1>
+    </header>
+    <main>
+        <div class="drivers-container">
+            {% for driver in drivers %}
+            <div class="driver-card">
+                <h2>{{ driver.name }}</h2>
+                <p>Team: {{ driver.team }}</p>
+                <p>Points: {{ driver.points }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>
