@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drivers - F1 Legacy</title>
     <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <header class="navbar">
         <div class="logo">
-            <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            </a>
         </div>
         <nav>
             <ul>
-                <li><a href="{% url 'index' %}">Home</a></li>
                 <li><a href="{% url 'drivers' %}">Drivers</a></li>
                 <li><a href="{% url 'teams' %}">Teams</a></li>
                 <li><a href="#">Races</a></li>
@@ -23,11 +27,42 @@
         </nav>
     </header>
     <main class="content">
-        <h1>Drivers</h1>
-        <p>Discover all the drivers in Formula 1 history.</p>
+        <div class="driver-header">
+            <h1>Drivers</h1>
+            <p>Meet the drivers competing in the current Formula 1 season</p>
+            <!-- <form method="get" action="." class="search-form">
+                <input type="text" name="q" placeholder="Search driver (e.g., Carlos Sainz)" class="search-input" value="{{ query }}">
+                <button type="submit" class="search-button">Search</button>
+            </form> -->
+        </div>
+        <div class="driver-container">
+            {% for driver in drivers %}
+            <div class="driver-card">
+                <a href="{% url 'driver_detail' driver.id %}">
+                    {% if driver.image %}
+                    <img src="{{ driver.image }}" alt="{{ driver.name }}" class="driver-image">
+                    {% else %}
+                    <img src="{% static 'default_driver.png' %}" alt="Default Driver" class="driver-image">
+                    {% endif %}
+                </a>
+                <div class="driver-info">
+                    <div class="driver-details">
+                        {% if driver.number %}
+                        <span class="driver-number">{{ driver.number }}</span>
+                        {% endif %}
+                        <h2 class="driver-name">{{ driver.name }}</h2>
+                        {% if driver.country_flag %}
+                        <img src="{{ driver.country_flag }}" alt="{{ driver.country_flag }} Flag" class="country-flag">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </main>
     <footer>
         <p>&copy; 2024 F1 Legacy | All Rights Reserved</p>
     </footer>
 </body>
+
 </html>

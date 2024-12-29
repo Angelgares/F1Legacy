@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ team.name }} - F1 Legacy</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            </a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'drivers' %}">Drivers</a></li>
+                <li><a href="{% url 'teams' %}">Teams</a></li>
+                <li><a href="#">Races</a></li>
+                <li><a href="#">Standings</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="content">
+        <section class="driver-layout">
+            <div class="driver-card-large">
+                <img src="{{ team.image }}" alt="{{ team.name }}" class="driver-image">
+                <div class="driver-info">
+                    <h1 class="driver-name-large">{{ team.name }}</h1>
+                </div>
+            </div>
+
+            <div class="driver-details-container">
+                <h2 class="details-title">Details</h2>
+                <div class="details-grid">
+                    <div class="details-column">
+                        <div class="detail-item">
+                            <span class="detail-label">Base:</span>
+                            <span class="detail-value">{{ team.base }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Team Principal:</span>
+                            <span class="detail-value">{{ team.team_principal }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Chassis:</span>
+                            <span class="detail-value">{{ team.chassis }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Power Unit:</span>
+                            <span class="detail-value">{{ team.power_unit }}</span>
+                        </div>
+                    </div>
+
+                    <div class="details-column">
+                        <div class="detail-item">
+                            <span class="detail-label">Victories:</span>
+                            <span class="detail-value">{{ team.victories }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Pole Positions:</span>
+                            <span class="detail-value">{{ team.pole_positions }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Fastest Laps:</span>
+                            <span class="detail-value">{{ team.fastest_laps }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Championships:</span>
+                            <span class="detail-value">{{ team.championships }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 F1 Legacy | All Rights Reserved</p>
+    </footer>
+</body>
+
+</html>

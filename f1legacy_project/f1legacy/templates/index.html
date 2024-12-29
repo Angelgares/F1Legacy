@@ -1,20 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Legacy</title>
     <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <header class="navbar">
         <div class="logo">
-            <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            </a>
         </div>
         <nav>
             <ul>
-                <li><a href="{% url 'index' %}">Home</a></li>
+                <li><a href="{% url 'load_data' %}">Load Data</a></li>
                 <li><a href="{% url 'drivers' %}">Drivers</a></li>
                 <li><a href="{% url 'teams' %}">Teams</a></li>
                 <li><a href="#">Races</a></li>
@@ -30,5 +35,23 @@
     <footer>
         <p>&copy; 2024 F1 Legacy | All Rights Reserved</p>
     </footer>
+
+    <div id="notification" class="notification">
+        Data loaded successfully!
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('data_loaded')) {
+            const notification = document.getElementById('notification');
+            notification.style.display = 'block';
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+    </script>
 </body>
+
 </html>

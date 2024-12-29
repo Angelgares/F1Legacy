@@ -14,10 +14,12 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+    
 class Driver(models.Model):
     name = models.CharField(max_length=100)
     number = models.IntegerField(blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
+    country_flag = models.URLField(blank=True, null=True)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True, related_name='drivers')
     birth_date = models.DateField(blank=True, null=True)
     points = models.FloatField(blank=True, null=True)

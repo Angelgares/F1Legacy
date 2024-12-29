@@ -53,6 +53,12 @@ def get_drivers():
                         .text.strip()
                     )
 
+                    if(country_driver == 'China'):
+                        flag_url = requests.get("https://restcountries.com/v3.1/name/" + 'Cn').json()
+                    else:
+                        flag_url = requests.get("https://restcountries.com/v3.1/name/" + country_driver).json()
+                    country_flag = get_flag_png(flag_url)
+
                     team = (
                         driver_soup.find("div", class_="f1-dl")
                         .find_all("dd")[0]
@@ -106,6 +112,7 @@ def get_drivers():
                     name = detail_url.split("/")[-1].replace("-", " ").title()
                     number = None
                     country_driver = None
+                    country_flag = None
                     team = None
                     birth_date = None
                     points = None
@@ -119,6 +126,7 @@ def get_drivers():
                     name=name,
                     number=number,
                     country=country_driver,
+                    country_flag=country_flag,
                     team=team,
                     birth_date=birth_date,
                     points=points,

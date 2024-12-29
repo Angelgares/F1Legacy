@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ driver.name }} - F1 Legacy</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            </a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'drivers' %}">Drivers</a></li>
+                <li><a href="{% url 'teams' %}">Teams</a></li>
+                <li><a href="#">Races</a></li>
+                <li><a href="#">Standings</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="content">
+        <section class="driver-layout">
+            <div class="driver-card-large">
+                {% if driver.image %}
+                <img src="{{ driver.image }}" alt="{{ driver.name }}" class="driver-image">
+                {% else %}
+                <img src="{% static 'default_driver.jpg' %}" alt="Default Driver" class="driver-image">
+                {% endif %}
+                <div class="driver-info">
+                    <div class="driver-header-layout">
+                        {% if driver.number %}
+                        <span class="driver-number-large">{{ driver.number }}</span>
+                        {% endif %}
+                        <h1 class="driver-name-large">{{ driver.name }}</h1>
+                        <div class="country-info">
+                            {% if driver.country_flag %}
+                            <img src="{{ driver.country_flag }}" alt="{{ driver.country_flag }} Flag"
+                                class="country-flag">
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="driver-details-container">
+                <h2 class="details-title">Details</h2>
+                {% if driver.number %}
+                <div class="details-grid">
+                    <div class="details-column">
+                        <div class="detail-item">
+                            <span class="detail-label">Team:</span>
+                            <span class="detail-value">{{ driver.team }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Date of birth:</span>
+                            <span class="detail-value">{{ driver.birth_date }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Age:</span>
+                            <span class="detail-value">{{ driver.age }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Country:</span>
+                            <span class="detail-value">{{ driver.country }}</span>
+                        </div>
+                    </div>
+
+                    <div class="details-column">
+                        <div class="detail-item">
+                            <span class="detail-label">Points:</span>
+                            {% if driver.points|stringformat:"d" == driver.points|stringformat:"g" %}
+                            <span class="detail-value">{{ driver.points|stringformat:"d" }}</span>
+                            {% else %}
+                            <span class="detail-value">{{ driver.points }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Races:</span>
+                            <span class="detail-value">{{ driver.races }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Podiums:</span>
+                            <span class="detail-value">{{ driver.podiums }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Victories:</span>
+                            <span class="detail-value">{{ driver.victories }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">World Championships:</span>
+                            <span class="detail-value">{{ driver.championships }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="no-details">
+                    <h2 class="detail-value">No details available</h2>
+                </div>
+                {% endif %}
+            </div>
+
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 F1 Legacy | All Rights Reserved</p>
+    </footer>
+</body>
+
+</html>
