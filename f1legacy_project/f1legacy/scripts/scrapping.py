@@ -1,6 +1,6 @@
 import requests, re, os, django, sys
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db.models import Q
 
 sys.path.append(
@@ -9,7 +9,7 @@ sys.path.append(
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
-from f1legacy.models import Driver, Team
+from f1legacy.models import Driver, Team, DriverStanding, TeamStanding, GrandPrix
 
 
 def get_drivers():
@@ -250,6 +250,129 @@ def get_teams():
             else:
                 print(f"Error al acceder a la página: {response.status_code}")
 
+def get_driver_standings(start_year=2000, end_year=2024):
+    url = "https://www.formula1.com/en/results/{year}/drivers"
+
+    for year in range(start_year, end_year + 1):
+        year_url = url.format(year=year)
+
+        response = requests.get(year_url)
+
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            drivers = soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
+
+            for driver in drivers:
+                driver_stats = driver.find_all("td")
+                try:
+                    position = driver_stats[0].text.strip()
+                    name = driver_stats[1].text.strip()
+                    car = driver_stats[3].text.strip()
+                    points = driver_stats[4].text.strip()
+                
+                except (AttributeError, IndexError):
+                    name = None
+                    car = None
+                    year = year
+                    position = None
+                    points = None
+                
+                DriverStanding.objects.update_or_create(
+                    name=name,
+                    car=car,
+                    year=year,
+                    position=position,
+                    points=points,
+                )
+            
+        else:
+            print(f"Error al acceder a la página: {response.status_code}")
+
+def get_team_standings(start_year=2000, end_year=2024):
+    url = "https://www.formula1.com/en/results/{year}/team"
+
+    for year in range(start_year, end_year + 1):
+        year_url = url.format(year=year)
+
+        response = requests.get(year_url)
+
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            teams = soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
+
+            for team in teams:
+                team_stats = team.find_all("td")
+                try:
+                    position = team_stats[0].text.strip()
+                    if position == "EX":
+                        position = 0
+                    name = team_stats[1].text.strip()
+                    points = team_stats[2].text.strip()
+                
+                except (AttributeError, IndexError):
+                    name = None
+                    year = year
+                    position = None
+                    points = None
+                
+                TeamStanding.objects.update_or_create(
+                    name=name,
+                    year=year,
+                    position=position,
+                    points=points,
+                )
+            
+        else:
+            print(f"Error al acceder a la página: {response.status_code}")
+
+def get_grand_prixes(start_year=2000, end_year=2024):
+    url = "https://www.formula1.com/en/results/{year}/races"
+
+    for year in range(start_year, end_year + 1):
+        year_url = url.format(year=year)
+
+        response = requests.get(year_url)
+
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            grand_prixes = soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
+
+            for grand_prix in grand_prixes:
+                grand_prix = grand_prix.find_all('td')[0]
+                country = grand_prix.find('a').text.strip()
+                href = grand_prix.find('a')['href']
+                detail_url = f"https://www.formula1.com/en/results/{year}/{href}"
+
+                grand_prix_response = requests.get(detail_url)
+
+                if grand_prix_response.status_code == 200:
+                    grand_prix_soup = BeautifulSoup(grand_prix_response.text, "html.parser")
+
+                    try:
+                        info = grand_prix_soup.find('div', class_='max-tablet:flex-col flex gap-xs').find_all('p')
+                        name = info[1].text.strip().split(',')[0]
+                        city = info[1].text.strip().split(',')[1]
+                        location = country + ', ' + city
+                        start_date, end_date = parse_dates(info[0].text.strip())
+                    
+                    except (AttributeError, IndexError):
+                        name = None
+                        location = None
+                        start_date = None
+                        end_date = None
+                    
+                    GrandPrix.objects.update_or_create(
+                        name=name,
+                        location=location,
+                        start_date=start_date,
+                        end_date=end_date,
+                    )
+            
+        else:
+            print(f"Error al acceder a la página: {response.status_code}")
 
 def get_flag_png(data):
     """
@@ -309,3 +432,32 @@ def parse_url(url):
     """
 
     return url.replace(" ", "%20")
+
+def parse_dates(date_string):
+    """
+    Función para procesar una cadena de fecha y devolver start_date y end_date.
+    
+    Formatos aceptados:
+    - "12 Mar 2000"
+    - "25 - 27 Mar 2011"
+    
+    :param date_string: La cadena de entrada con la fecha.
+        
+    :return: tuple: start_date (datetime), end_date (datetime)
+    """
+    if "-" in date_string:
+        start_part, end_part = date_string.split("-")
+        start_part = start_part.strip()  
+        end_part = end_part.strip() 
+        
+        end_date = datetime.strptime(end_part, "%d %b %Y")
+        start_date = end_date - timedelta(days=2)
+    
+    else:
+        end_date = datetime.strptime(date_string, "%d %b %Y")
+        start_date = end_date - timedelta(days=2)
+
+    start_date = start_date.strftime("%Y-%m-%d")
+    end_date = end_date.strftime("%Y-%m-%d")
+
+    return start_date, end_date
