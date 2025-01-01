@@ -54,11 +54,16 @@ def get_drivers():
                         .text.strip()
                     )
 
-                    if(country_driver == 'China'):
-                        flag_url = requests.get("https://restcountries.com/v3.1/name/" + 'Cn').json()
-                    else:
-                        flag_url = requests.get("https://restcountries.com/v3.1/name/" + country_driver).json()
-                    country_flag = get_flag_png(flag_url)
+                    try:
+                        if country_driver == 'China':
+                            flag_url = requests.get("https://restcountries.com/v3.1/name/" + 'Cn').json()
+                        else:
+                            flag_url = requests.get("https://restcountries.com/v3.1/name/" + country_driver).json()
+                        country_flag = get_flag_png(flag_url)
+                        
+                    except requests.RequestException as e:
+                        print(f"Error fetching flag for {country_driver}: {e}")
+                        country_flag = None
 
                     team = (
                         driver_soup.find("div", class_="f1-dl")
