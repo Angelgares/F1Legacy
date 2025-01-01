@@ -19,7 +19,7 @@
         </div>
         <nav>
             <ul>
-                <li><a href="{% url 'load_data' %}">Load Data</a></li>
+                <li><a id="loadDataButton" href="{% url 'load_data' %}">Load Data</a></li>
                 <li><a href="{% url 'drivers' %}">Drivers</a></li>
                 <li><a href="{% url 'teams' %}">Teams</a></li>
                 <li><a href="#">Races</a></li>
@@ -29,27 +29,77 @@
     </header>
     <main class="hero">
         <h1>Welcome to F1 Legacy</h1>
-        <p>Explore the history, drivers, and moments that shaped Formula 1.</p>
-        <button>Discover More</button>
+        <p>Explore the history, drivers, teams and moments that shaped Formula 1.</p>
+        <button onclick="window.open('https://www.formula1.com/en/latest', '_blank')">Discover More</button>
+        <div id="popup" class="popup" style="display: none;">
+            <div class="popup-content">
+                <h2 class="popup-title">LOAD DATA</h2>
+                <p class="popup-description">The complete data load process may take some time. Please specify a start
+                    and end year (1958-2024):</p>
+                <form id="loadDataForm" action="{% url 'load_data' %}" method="get" class="popup-form">
+                    <div class="year-inputs">
+                        <label for="start_year">Start Year:</label>
+                        <input type="number" id="start_year" name="start_year" min="1958" max="2024" placeholder="1958"
+                            required>
+                        <label for="end_year">End Year:</label>
+                        <input type="number" id="end_year" name="end_year" min="1958" max="2024" placeholder="2024"
+                            required>
+                    </div>
+                    <div class="popup-buttons">
+                        <button type="button" onclick="closePopup()" class="cancel-button">Cancel</button>
+                        <button type="submit" class="submit-button">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </main>
     <footer>
         <p>&copy; 2024 F1 Legacy | All Rights Reserved</p>
     </footer>
 
-    <div id="notification" class="notification">
+    <div id="data_loaded" class="notification">
         Data loaded successfully!
+    </div>
+
+    <div id="bad_year_format" class="notification">
+        Both years must not be empty
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('data_loaded')) {
-            const notification = document.getElementById('notification');
+            const notification = document.getElementById('data_loaded');
             notification.style.display = 'block';
             const newUrl = window.location.origin + window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 3000);
+        }
+        if (urlParams.has('bad_year_format')) {
+            const notification = document.getElementById('bad_year_format');
+            notification.style.display = 'block';
+            notification.style.backgroundColor = '#b40401';
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        document.getElementById('loadDataButton').addEventListener('click', (e) => {
+            e.preventDefault();
+            openPopup();
+        });
+
+        function openPopup() {
+            const popup = document.getElementById('popup');
+            popup.style.display = 'block';
+        }
+
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            popup.style.display = 'none';
         }
     </script>
 </body>

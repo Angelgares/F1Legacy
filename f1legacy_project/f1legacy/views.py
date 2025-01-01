@@ -1,7 +1,8 @@
 import os, sys, django
 from django.shortcuts import render, redirect
+from django.http import HttpResponseBadRequest
 
-from f1legacy.scripts.scrapping import get_teams, get_drivers, calculate_age
+from f1legacy.scripts.scrapping import get_teams, get_drivers, calculate_age, get_driver_standings, get_team_standings, get_grand_prixes
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
@@ -23,9 +24,20 @@ def teams_view(request):
 
 
 def load_data(request):
-    get_teams()
-    get_drivers()
-    return redirect("/?data_loaded=true")
+    try:
+        start_year = int(request.GET.get("start_year", 2024))
+        end_year = int(request.GET.get("end_year", 2024))
+
+        get_teams()
+        get_drivers()
+        get_driver_standings(start_year, end_year)
+        get_team_standings(start_year, end_year)
+        get_grand_prixes(start_year, end_year)
+
+        return redirect("/?data_loaded=true")
+
+    except ValueError:
+        return redirect("/?bad_year_format=true")
 
 
 def driver_detail(request, id):
