@@ -58,25 +58,24 @@ class GrandPrix(models.Model):
     end_date = models.DateField()
 
     def __str__(self):
-        return self.circuit
+        return self.name
     
-# class StartingGrid(models.Model):
-#     grand_prix = models.ForeignKey(GrandPrix, on_delete=models.CASCADE, related_name='starting_grids')
-#     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name='starting_grids')
-#     position = models.IntegerField()
-#     lap_time = models.CharField(max_length=100, blank=True, null=True)
+class StartingGrid(models.Model):
+    grand_prix = models.ForeignKey(GrandPrix, on_delete=models.CASCADE, related_name='starting_grids')
+    driver = models.CharField(max_length=100)
+    car = models.CharField(max_length=100)
+    position = models.PositiveIntegerField(blank=True, null=True)
+    lap_time = models.CharField(max_length=100, blank=True, null=True)
 
-#     def __str__(self):
-#         return f'{self.grand_prix.name} - {self.driver.name} - {self.position}'
+    def __str__(self):
+        return f'{self.grand_prix.name} - {self.driver} - {self.position}'
 
-# class RaceResult(models.Model):
-#     grand_prix = models.ForeignKey(GrandPrix, on_delete=models.CASCADE, related_name='race_results')
-#     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name='race_results')
-#     position = models.IntegerField(blank=True, null=True)
-#     laps_completed = models.IntegerField(blank=True, null=True)
-#     total_time = models.CharField(max_length=100, blank=True, null=True)
-#     fastest_lap = models.CharField(max_length=100, blank=True, null=True)
-#     points = models.FloatField(blank=True, null=True)
+class RaceResult(models.Model):
+    starting_grid = models.ForeignKey(StartingGrid, on_delete=models.CASCADE, related_name='race_results')
+    position = models.PositiveIntegerField(blank=True, null=True)
+    laps_completed = models.IntegerField(blank=True, null=True)
+    total_time = models.CharField(max_length=100, blank=True, null=True)
+    points = models.FloatField(blank=True, null=True)
 
-#     def __str__(self):
-#         return f'{self.grand_prix.name} - {self.driver.name} - {self.position}'
+    def __str__(self):
+        return f'{self.grand_prix.name} - {self.driver} - {self.position}'

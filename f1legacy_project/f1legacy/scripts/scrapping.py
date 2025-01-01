@@ -2,6 +2,7 @@ import requests, re, os, django, sys
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from django.db.models import Q
+from django.db import transaction
 
 sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,7 +10,7 @@ sys.path.append(
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
-from f1legacy.models import Driver, Team, DriverStanding, TeamStanding, GrandPrix
+from f1legacy.models import Driver, Team, DriverStanding, TeamStanding, GrandPrix, StartingGrid, RaceResult
 
 
 def get_drivers():
@@ -327,6 +328,7 @@ def get_team_standings(start_year=2000, end_year=2024):
         else:
             print(f"Error al acceder a la página: {response.status_code}")
 
+@transaction.atomic
 def get_grand_prixes(start_year=2000, end_year=2024):
     url = "https://www.formula1.com/en/results/{year}/races"
 
@@ -344,42 +346,130 @@ def get_grand_prixes(start_year=2000, end_year=2024):
                 grand_prix = grand_prix.find_all('td')[0]
                 country = grand_prix.find('a').text.strip()
                 href = grand_prix.find('a')['href']
-                detail_url = f"https://www.formula1.com/en/results/{year}/{href}"
 
-                grand_prix_response = requests.get(detail_url)
+                # Grand Prix scraping
+
+                grand_prix_url = f"https://www.formula1.com/en/results/{year}/{href}"
+
+                grand_prix_response = requests.get(grand_prix_url)
 
                 if grand_prix_response.status_code == 200:
                     grand_prix_soup = BeautifulSoup(grand_prix_response.text, "html.parser")
 
                     try:
-                        info = grand_prix_soup.find('div', class_='max-tablet:flex-col flex gap-xs').find_all('p')
-                        name = info[1].text.strip().split(',')[0]
-                        city = info[1].text.strip().split(',')[1]
+                        gp_info = grand_prix_soup.find('div', class_='max-tablet:flex-col flex gap-xs').find_all('p')
+                        gp_name = gp_info[1].text.strip().split(',')[0]
+                        city = gp_info[1].text.strip().split(',')[1]
                         location = country + ', ' + city
-                        start_date, end_date = parse_dates(info[0].text.strip())
+                        start_date, end_date = parse_dates(gp_info[0].text.strip())
                     
                     except (AttributeError, IndexError):
-                        name = None
+                        gp_name = None
                         location = None
                         start_date = None
                         end_date = None
                     
                     GrandPrix.objects.update_or_create(
-                        name=name,
+                        name=gp_name,
                         location=location,
                         start_date=start_date,
                         end_date=end_date,
                     )
-            
+
+                # Starting Grid scraping
+
+                starting_grid_url = grand_prix_url.replace('race-result', 'starting-grid')
+                starting_grid_repsonse = requests.get(starting_grid_url)
+
+                if starting_grid_repsonse.status_code == 200:
+                    starting_grid_soup = BeautifulSoup(starting_grid_repsonse.text, "html.parser")
+                    starting_grid_info = starting_grid_soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
+                   
+                    for sg_info in starting_grid_info:
+                        try:
+                            sg_info = sg_info.find_all('td')
+                            sg_grand_prix = GrandPrix.objects.filter(Q(end_date=end_date)).first()
+                            driver = sg_info[2].text.strip()[:-3]
+                            car = sg_info[3].text.strip()
+                            position = sg_info[0].text.strip()
+                            lap_time = sg_info[4].text.strip()
+
+                        except (AttributeError, IndexError):
+                            grand_prix = None
+                            driver = "Driver not found"
+                            car = "Car not found"
+                            position = None
+                            lap_time = None
+
+                        StartingGrid.objects.update_or_create(
+                            grand_prix=sg_grand_prix,
+                            driver=driver,
+                            car=car,
+                            position=position,
+                            lap_time=lap_time,
+                        )
+
+                # Race Result scraping
+
+                race_result_response = requests.get(grand_prix_url)
+
+                if race_result_response.status_code == 200:
+                    race_result_soup = BeautifulSoup(race_result_response.text, "html.parser")
+                    race_result_info = race_result_soup.find('table', class_='f1-table f1-table-with-data w-full').find('tbody').find_all('tr')
+
+                    for rr_info in race_result_info:
+                        try:
+                            rr_info = rr_info.find_all('td')
+                            driver = rr_info[2].text.strip()[:-3]
+                            car = rr_info[3].text.strip()
+                            rr_starting_grid = StartingGrid.objects.filter(
+                                Q(grand_prix__end_date=end_date) & 
+                                Q(driver__icontains=driver)).first()
+                            if not rr_starting_grid:
+                                StartingGrid.objects.update_or_create(
+                                    grand_prix=sg_grand_prix,
+                                    driver=driver,
+                                    car=car,
+                                    position=0,
+                                    lap_time=None,
+                                )
+                                rr_starting_grid = StartingGrid.objects.filter(
+                                Q(grand_prix__end_date=end_date) & 
+                                Q(driver__icontains=driver)).first()
+                            position = rr_info[0].text.strip()
+                            if position == "NC" or position == "EX" or position == "DQ":
+                                position = 0
+                            laps_completed = rr_info[4].text.strip()
+                            if laps_completed == "":
+                                laps_completed = 0
+                            total_time = rr_info[5].text.strip()
+                            points = rr_info[6].text.strip()
+
+                        except (AttributeError, IndexError):
+                            rr_starting_grid = rr_starting_grid
+                            position = None
+                            laps_completed = None
+                            total_time = None
+                            points = None
+
+                        RaceResult.objects.update_or_create(
+                            starting_grid=rr_starting_grid,
+                            position=position,
+                            laps_completed=laps_completed,
+                            total_time=total_time,
+                            points=points,
+                        )
+
         else:
             print(f"Error al acceder a la página: {response.status_code}")
 
+
 def get_flag_png(data):
     """
-    Filtra la URI de la bandera en formato .png desde la sección 'flags'. Utiliza la API de restcountries.com.
+    Filters the URI of the flag in .png format from the 'flags' section. Uses the restcountries.com API.
 
-    :param data: Json con los datos del país.
-    :return: String con la URI de la bandera en formato .png, o None si no se encuentra.
+    :param data: JSON with the country data.
+    :return: String with the URI of the flag in .png format, or None if not found.
     """
     try:
         if isinstance(data, list):
@@ -394,7 +484,7 @@ def get_victories(data_string):
     """
     Procesa un string y devuelve el número de veces que el piloto ha quedado en primer lugar.
 
-    :param data_string: String con información del piloto, en el formato "1 (xVeces)".
+    :param data_string: String con gp_información del piloto, en el formato "1 (xVeces)".
     :return: Número de veces que el piloto quedó en primer lugar, o 0 si no aplica.
     """
     match = re.search(r"1\s*\(x(\d+)\)", data_string)
@@ -406,10 +496,10 @@ def get_victories(data_string):
 
 def calculate_age(birth_date_str):
     """
-    Calcula la edad actual a partir de una fecha de nacimiento en formato DD/MM/YYYY.
+    Calculates the current age from a birth date in DD/MM/YYYY format.
 
-    :param birth_date_str: Fecha de nacimiento como string, en formato "DD/MM/YYYY".
-    :return: Edad actual como un número entero.
+    :param birth_date_str: Birth date as a string, in "DD/MM/YYYY" format.
+    :return: Current age as an integer.
     """
     birth_date = datetime.strptime(birth_date_str, "%d/%m/%Y")
 
@@ -425,23 +515,23 @@ def calculate_age(birth_date_str):
 
 def parse_url(url):
     """
-    Parsea una URL sustituyendo los espacios por "%20".
+    Parses a URL by replacing spaces with "%20".
 
-    :param url: URL de la página a parsear.
-    :return: URL parseada.
+    :param url: URL of the page to parse.
+    :return: Parsed URL.
     """
 
     return url.replace(" ", "%20")
 
 def parse_dates(date_string):
     """
-    Función para procesar una cadena de fecha y devolver start_date y end_date.
+    Function to process a date string and return start_date and end_date.
     
-    Formatos aceptados:
+    Accepted formats:
     - "12 Mar 2000"
     - "25 - 27 Mar 2011"
     
-    :param date_string: La cadena de entrada con la fecha.
+    :param date_string: The input string with the date.
         
     :return: tuple: start_date (datetime), end_date (datetime)
     """
@@ -461,3 +551,10 @@ def parse_dates(date_string):
     end_date = end_date.strftime("%Y-%m-%d")
 
     return start_date, end_date
+
+if __name__ == "__main__":
+    get_teams()
+    get_drivers()
+    get_driver_standings(1958, 1958)
+    get_team_standings(1958, 1958)
+    get_grand_prixes(1958, 1958)
