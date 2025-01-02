@@ -256,7 +256,7 @@ def get_teams():
             else:
                 print(f"Error al acceder a la página: {response.status_code}")
 
-def get_driver_standings(start_year=2000, end_year=2024):
+def get_driver_standings(start_year, end_year):
     url = "https://www.formula1.com/en/results/{year}/drivers"
 
     for year in range(start_year, end_year + 1):
@@ -273,7 +273,7 @@ def get_driver_standings(start_year=2000, end_year=2024):
                 driver_stats = driver.find_all("td")
                 try:
                     position = driver_stats[0].text.strip()
-                    name = driver_stats[1].text.strip()
+                    name = driver_stats[1].text.strip()[:-3]
                     car = driver_stats[3].text.strip()
                     points = driver_stats[4].text.strip()
                 
@@ -295,7 +295,7 @@ def get_driver_standings(start_year=2000, end_year=2024):
         else:
             print(f"Error al acceder a la página: {response.status_code}")
 
-def get_team_standings(start_year=2000, end_year=2024):
+def get_team_standings(start_year, end_year):
     url = "https://www.formula1.com/en/results/{year}/team"
 
     for year in range(start_year, end_year + 1):
@@ -334,7 +334,7 @@ def get_team_standings(start_year=2000, end_year=2024):
             print(f"Error al acceder a la página: {response.status_code}")
 
 @transaction.atomic
-def get_grand_prixes(start_year=2000, end_year=2024):
+def get_grand_prixes(start_year, end_year):
     url = "https://www.formula1.com/en/results/{year}/races"
 
     for year in range(start_year, end_year + 1):
@@ -556,10 +556,3 @@ def parse_dates(date_string):
     end_date = end_date.strftime("%Y-%m-%d")
 
     return start_date, end_date
-
-if __name__ == "__main__":
-    get_teams()
-    get_drivers()
-    get_driver_standings(1958, 1958)
-    get_team_standings(1958, 1958)
-    get_grand_prixes(1958, 1958)
