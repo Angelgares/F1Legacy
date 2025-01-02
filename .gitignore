@@ -71,3 +71,5 @@ node_modules/
 
 # Static analysis
 pyrightconfig.json
+
+whoosh_indexes/
