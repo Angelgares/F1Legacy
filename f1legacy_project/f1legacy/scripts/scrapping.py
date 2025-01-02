@@ -11,7 +11,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
 from f1legacy.models import Driver, Team, DriverStanding, TeamStanding, GrandPrix, StartingGrid, RaceResult
-
+from f1legacy.scripts.whoosh_index import add_driver_data, add_team_data, get_driver_index, get_team_index
 
 def get_drivers():
     url = "https://www.formula1.com/en/drivers"
@@ -146,6 +146,7 @@ def get_drivers():
     else:
         print(f"Error al acceder a la página: {response.status_code}")
 
+    add_driver_data(get_driver_index())
 
 def get_teams():
     url = "https://www.formula1.com/en/teams"
@@ -255,6 +256,8 @@ def get_teams():
 
             else:
                 print(f"Error al acceder a la página: {response.status_code}")
+                
+    add_team_data(get_team_index())
 
 def get_driver_standings(start_year, end_year):
     url = "https://www.formula1.com/en/results/{year}/drivers"
