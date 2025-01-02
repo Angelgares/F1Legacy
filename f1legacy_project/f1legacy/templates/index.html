@@ -22,8 +22,14 @@
                 <li><a id="loadDataButton" href="{% url 'load_data' %}">Load Data</a></li>
                 <li><a href="{% url 'drivers' %}">Drivers</a></li>
                 <li><a href="{% url 'teams' %}">Teams</a></li>
+                <li class="dropdown">
+                    <a class="dropbtn">Standings</a>
+                    <div class="dropdown-content">
+                        <a href="{% url 'driver_standings' %}">Driver standings</a>
+                        <a href="{% url 'team_standings' %}">Team standings</a>
+                    </div>
+                </li>
                 <li><a href="#">Races</a></li>
-                <li><a href="#">Standings</a></li>
             </ul>
         </nav>
     </header>
@@ -34,8 +40,11 @@
         <div id="popup" class="popup" style="display: none;">
             <div class="popup-content">
                 <h2 class="popup-title">LOAD DATA</h2>
-                <p class="popup-description">The complete data load process may take some time. Please specify a start
-                    and end year (1958-2024):</p>
+                <p class="popup-description">
+                    Loading all the data may take significant time. To optimize the process, please specify a range of
+                    years (1958-2024) to extract detailed information for that period:
+                </p>
+
                 <form id="loadDataForm" action="{% url 'load_data' %}" method="get" class="popup-form">
                     <div class="year-inputs">
                         <label for="start_year">Start Year:</label>

@@ -470,3 +470,50 @@ footer {
 .popup .submit-button:hover {
     background-color: #45a049;
 }
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropbtn {
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 0.5em 0.5em;
+    cursor: pointer;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #b40401;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 5px;
+    left: -30px; 
+    text-align: center;
+}
+
+.dropdown-content a {
+    color: white;
+    padding: 0.5em 1em; 
+    text-decoration: none;
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.5em;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown-content a:hover,
+.dropdown-content a:focus {
+    color: #000; 
+}

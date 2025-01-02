@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Standings</title>
+</head>
+<body>
+    <h1>Driver Standings</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Driver Name</th>
+                <th>Car</th>
+                <th>Year</th>
+                <th>Position</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for standing in driver_standings %}
+            <tr>
+                <td>{{ standing.name }}</td>
+                <td>{{ standing.car }}</td>
+                <td>{{ standing.year }}</td>
+                <td>{{ standing.position }}</td>
+                <td>{{ standing.points }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No driver standings available</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -21,8 +21,14 @@
             <ul>
                 <li><a href="{% url 'drivers' %}">Drivers</a></li>
                 <li><a href="{% url 'teams' %}">Teams</a></li>
+                <li class="dropdown">
+                    <a class="dropbtn">Standings</a>
+                    <div class="dropdown-content">
+                        <a href="{% url 'driver_standings' %}">Driver standings</a>
+                        <a href="{% url 'team_standings' %}">Team standings</a>
+                    </div>
+                </li>
                 <li><a href="#">Races</a></li>
-                <li><a href="#">Standings</a></li>
             </ul>
         </nav>
     </header>

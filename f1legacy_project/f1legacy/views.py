@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
-from f1legacy.models import Driver, Team
+from f1legacy.models import Driver, Team, DriverStanding, TeamStanding
 
 
 def index(request):
@@ -39,6 +39,11 @@ def load_data(request):
     except ValueError:
         return redirect("/?bad_year_format=true")
 
+def driver_standings(request):
+    return render(request, "driver_standings.html", {"driver_standings": DriverStanding.objects.all()})
+
+def team_standings(request):
+    return render(request, "team_standings.html", {"team_standings": TeamStanding.objects.all()})
 
 def driver_detail(request, id):
     driver = Driver.objects.get(id=id)
