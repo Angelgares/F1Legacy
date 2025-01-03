@@ -8,8 +8,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
 from f1legacy.models import Driver, Team, DriverStanding, TeamStanding
-from whoosh.qparser import QueryParser, MultifieldParser
+from whoosh.qparser import MultifieldParser
 from whoosh.query import Term, NumericRange
+from whoosh.index import EmptyIndexError
 from f1legacy.scripts.whoosh_index import create_indexes, get_driver_index, get_team_index
 
 
@@ -26,31 +27,37 @@ def drivers_view(request):
 
     driver_results = []
     filters = []
+    try:
+        index = get_driver_index()
+        with index.searcher() as searcher:
+            parser = MultifieldParser(["name", "number", "championships", "races", "victories"], index.schema)
 
-    index = get_driver_index()
-    with index.searcher() as searcher:
-        parser = MultifieldParser(["name", "number", "championships", "races", "victories"], index.schema)
+            if query:
+                filters.append(parser.parse(query))
+            if number:
+                filters.append(Term("number", number))
+            if championships:
+                filters.append(NumericRange("championships", int(championships), None))
+            if races:
+                filters.append(NumericRange("races", int(races), None))
+            if victories:
+                filters.append(NumericRange("victories", int(victories), None))
 
-        if query:
-            filters.append(parser.parse(query))
-        if number:
-            filters.append(Term("number", number))
-        if championships:
-            filters.append(NumericRange("championships", int(championships), None))
-        if races:
-            filters.append(NumericRange("races", int(races), None))
-        if victories:
-            filters.append(NumericRange("victories", int(victories), None))
+            if filters:
+                final_query = filters[0]
+                for filter_query in filters[1:]:
+                    final_query &= filter_query
 
-        if filters:
-            final_query = filters[0]
-            for filter_query in filters[1:]:
-                final_query &= filter_query
+                results = searcher.search(final_query, limit=None)
+                driver_results = [Driver.objects.get(id=result["id"]) for result in results]
+            else:
+                driver_results = Driver.objects.all()
 
-            results = searcher.search(final_query, limit=None)
-            driver_results = [Driver.objects.get(id=result["id"]) for result in results]
-        else:
-            driver_results = Driver.objects.all()
+    except EmptyIndexError:
+        driver_results = Driver.objects.all()
+
+    except FileNotFoundError:
+        driver_results = Driver.objects.all()
 
     return render(request, "drivers.html", {
         "drivers": driver_results, 
@@ -66,26 +73,33 @@ def teams_view(request):
     team_results = []
     filters = []
 
-    index = get_team_index()
-    with index.searcher() as searcher:
-        parser = MultifieldParser(["name", "championships", "victories"], index.schema)
+    try:
+        index = get_team_index()
+        with index.searcher() as searcher:
+            parser = MultifieldParser(["name", "championships", "victories"], index.schema)
 
-        if query:
-            filters.append(parser.parse(query))
-        if championships:
-            filters.append(NumericRange("championships", int(championships), None))
-        if victories:
-            filters.append(NumericRange("victories", int(victories), None))
+            if query:
+                filters.append(parser.parse(query))
+            if championships:
+                filters.append(NumericRange("championships", int(championships), None))
+            if victories:
+                filters.append(NumericRange("victories", int(victories), None))
 
-        if filters:
-            final_query = filters[0]
-            for filter_query in filters[1:]:
-                final_query &= filter_query
+            if filters:
+                final_query = filters[0]
+                for filter_query in filters[1:]:
+                    final_query &= filter_query
 
-            results = searcher.search(final_query, limit=None)
-            team_results = [Team.objects.get(id=result["id"]) for result in results]
-        else:
-            team_results = Team.objects.all()
+                results = searcher.search(final_query, limit=None)
+                team_results = [Team.objects.get(id=result["id"]) for result in results]
+            else:
+                team_results = Team.objects.all()
+
+    except EmptyIndexError:
+        team_results = Team.objects.all()
+
+    except FileNotFoundError:
+        team_results = Team.objects.all()
 
     return render(request, "teams.html", {
         "teams": team_results, 
@@ -113,16 +127,30 @@ def load_data(request):
 
 def driver_standings(request):
     selected_year = request.GET.get("year")
+    sort_field = request.GET.get("sort", "position")  
+    sort_order = request.GET.get("order", "asc")  
+    
+    valid_fields = ["position", "name", "car"] 
+    if sort_field not in valid_fields:
+        sort_field = "position"
+
+    if sort_field == "position":
+        sort_field = "position" if sort_order == "asc" else "-position"
+    else:
+        sort_field = f"-{sort_field}" if sort_order == "desc" else sort_field
+
     years = DriverStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
 
     if selected_year:
-        standings = DriverStanding.objects.filter(year=selected_year).order_by("position")
+        standings = DriverStanding.objects.filter(year=selected_year).order_by(sort_field)
     else:
         standings = None
 
     return render(request, "driver_standings.html", {
         "driver_standings": standings,
         "years": years,
+        "current_sort": sort_field.lstrip("-"),
+        "current_order": sort_order,
     })
 
 def team_standings(request):

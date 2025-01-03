@@ -1,37 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Standings</title>
+    <title>Driver Standings - F1 Legacy</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'f1.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
 </head>
+
 <body>
-    <h1>Driver Standings</h1>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Driver Name</th>
-                <th>Car</th>
-                <th>Year</th>
-                <th>Position</th>
-                <th>Points</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for standing in driver_standings %}
-            <tr>
-                <td>{{ standing.name }}</td>
-                <td>{{ standing.car }}</td>
-                <td>{{ standing.year }}</td>
-                <td>{{ standing.position }}</td>
-                <td>{{ standing.points }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5">No driver standings available</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <header class="navbar">
+        <div class="logo">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            </a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'drivers' %}">Drivers</a></li>
+                <li><a href="{% url 'teams' %}">Teams</a></li>
+                <li class="dropdown">
+                    <a class="dropbtn">Standings</a>
+                    <div class="dropdown-content">
+                        <a href="{% url 'driver_standings' %}">Driver standings</a>
+                        <a href="{% url 'team_standings' %}">Team standings</a>
+                    </div>
+                </li>
+                <li><a href="#">Races</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="content">
+        <div class="driver-header">
+            <h1>Driver Standings</h1>
+            {% if years %}
+            <div class="search-container">
+                <form method="get" action="{% url 'driver_standings' %}" class="search-form">
+                    <p>Select a year to view driver standings:</p>
+                    <div class="search-row">
+                        <div class="year-dropdown">
+                            <select name="year" class="dropdown-select" required>
+                                {% for y in years %}
+                                <option value="{{ y }}" {% if y|stringformat:"s" == request.GET.year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="search-button">View Standings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {%if driver_standings %}
+        <div class="search-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="table-button left">
+                            <a href="?year={{ request.GET.year }}&sort=position&order={% if current_sort == 'position' and current_order == 'asc' %}desc{% else %}asc{% endif %}">
+                                POSITION
+                                {% if current_sort == 'position' %}
+                                    {% if current_order == 'asc' %}
+                                        <span>⬆</span>
+                                    {% else %}
+                                        <span>⬇</span>
+                                    {% endif %}
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th class="table-button">
+                            NAME
+                        </th>
+                        <th class="table-button">
+                            <a href="?year={{ request.GET.year }}&sort=car&order={% if current_sort == 'car' and current_order == 'asc' %}desc{% else %}asc{% endif %}">
+                                CAR
+                                {% if current_sort == 'car' %}
+                                    {% if current_order == 'asc' %}
+                                        <span>⬆</span>
+                                    {% else %}
+                                        <span>⬇</span>
+                                    {% endif %}
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th class="table-button right">
+                            POINTS
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for standing in driver_standings %}
+                    <tr>
+                        <td>{{ standing.position }}</td>
+                        <td>{{ standing.name }}</td>
+                        <td>{{ standing.car }}</td>
+                        <td>
+                            {% if standing.points|stringformat:"d" == standing.points|stringformat:"g" %}
+                            {{ standing.points|stringformat:"d" }}
+                            {% else %}
+                            {{ standing.points }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% else %}
+        <p>No driver standings available</p>
+        {% endif %}
+    </main>
+    <footer>
+        <p>&copy; 2024 F1 Legacy | All Rights Reserved</p>
+    </footer>
 </body>
+
 </html>
