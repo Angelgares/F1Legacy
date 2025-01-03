@@ -336,6 +336,7 @@ footer {
 
 .search-input::placeholder {
     color: #fff; 
+    opacity: 0.7;
 }
 
 .search-input:focus {

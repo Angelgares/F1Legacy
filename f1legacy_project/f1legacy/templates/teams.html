@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teams - F1 Legacy</title>
     <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'f1.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
 </head>
 
@@ -36,6 +37,21 @@
         <div class="driver-header">
             <h1>Teams</h1>
             <p>Meet the teams competing in the current Formula 1 season</p>
+            <div class="search-container">
+                <p class="search-title">Advanced filtering by teams details:</p>
+                <form method="get" action="{% url 'teams' %}" class="search-form">
+                    <div class="search-row">
+                        <input type="text" name="q" placeholder="Name" class="search-input large" value="{{ query }}">
+                        <input type="number" name="championships" placeholder="Championships" class="search-input large"
+                            value="{{ request.GET.championships }}">
+                        <input type="number" name="victories" placeholder="Victories" class="search-input small"
+                            value="{{ request.GET.victories }}">
+                    </div>
+                    <div class="search-row">
+                        <button type="submit" class="search-button">Search</button>
+                    </div>
+                </form>
+            </div>          
         </div>
         <div class="driver-container">
             {% for team in teams %}
