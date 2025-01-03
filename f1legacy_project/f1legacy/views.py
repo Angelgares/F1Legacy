@@ -1,5 +1,6 @@
 import os, sys, django
 from django.shortcuts import render, redirect
+from django.db.models import Case, When, Value, IntegerField
 
 from f1legacy.scripts.scrapping import get_teams, get_drivers, calculate_age, get_driver_standings, get_team_standings, get_grand_prixes
 
@@ -107,7 +108,6 @@ def teams_view(request):
         "request": request,
     })
 
-
 def load_data(request):
     try:
         start_year = int(request.GET.get("start_year", 2024))
@@ -127,22 +127,31 @@ def load_data(request):
 
 def driver_standings(request):
     selected_year = request.GET.get("year")
-    sort_field = request.GET.get("sort", "position")  
-    sort_order = request.GET.get("order", "asc")  
-    
-    valid_fields = ["position", "name", "car"] 
+    sort_field = request.GET.get("sort", "position")
+    sort_order = request.GET.get("order", "asc")
+
+    valid_fields = ["position", "name", "car"]
     if sort_field not in valid_fields:
         sort_field = "position"
 
+    sort_direction = "" if sort_order == "asc" else "-"
     if sort_field == "position":
-        sort_field = "position" if sort_order == "asc" else "-position"
-    else:
-        sort_field = f"-{sort_field}" if sort_order == "desc" else sort_field
+        sort_field = "adjusted_position"
 
     years = DriverStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
 
     if selected_year:
-        standings = DriverStanding.objects.filter(year=selected_year).order_by(sort_field)
+        standings = (
+            DriverStanding.objects.filter(year=selected_year)
+            .annotate(
+                adjusted_position=Case(
+                    When(position=0, then=Value(9999)), 
+                    default="position",
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by(f"{sort_direction}{sort_field}")
+        )
     else:
         standings = None
 
@@ -153,6 +162,8 @@ def driver_standings(request):
         "current_order": sort_order,
     })
 
+from django.db.models import Case, When, Value, IntegerField
+
 def team_standings(request):
     selected_year = request.GET.get("year")
     sort_field = request.GET.get("sort", "position")
@@ -161,25 +172,35 @@ def team_standings(request):
     valid_fields = ["position", "name", "victories"]
     if sort_field not in valid_fields:
         sort_field = "position"
-    
+
+    sort_direction = "" if sort_order == "asc" else "-"
     if sort_field == "position":
-        sort_field = "position" if sort_order == "asc" else "-position"
-    else:
-        sort_field = f"-{sort_field}" if sort_order == "desc" else sort_field
-    
+        sort_field = "adjusted_position"
+
     years = TeamStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
 
     if selected_year:
-        standings = TeamStanding.objects.filter(year=selected_year).order_by(sort_field)
+        standings = (
+            TeamStanding.objects.filter(year=selected_year)
+            .annotate(
+                adjusted_position=Case(
+                    When(position=0, then=Value(9999)), 
+                    default="position",
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by(f"{sort_direction}{sort_field}")
+        )
     else:
         standings = None
-    
+
     return render(request, "team_standings.html", {
         "team_standings": standings,
         "years": years,
         "current_sort": sort_field.lstrip("-"),
         "current_order": sort_order,
     })
+
 
 def driver_detail(request, id):
     driver = Driver.objects.get(id=id)

@@ -93,7 +93,7 @@
                 <tbody>
                     {% for standing in driver_standings %}
                     <tr>
-                        <td>{{ standing.position }}</td>
+                        <td>{% if standing.position == 0 %}*{% else %}{{ standing.position }}{% endif %}</td>
                         <td>{{ standing.name }}</td>
                         <td>{{ standing.car }}</td>
                         <td>
