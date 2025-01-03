@@ -154,7 +154,32 @@ def driver_standings(request):
     })
 
 def team_standings(request):
-    return render(request, "team_standings.html", {"team_standings": TeamStanding.objects.all()})
+    selected_year = request.GET.get("year")
+    sort_field = request.GET.get("sort", "position")
+    sort_order = request.GET.get("order", "asc")
+
+    valid_fields = ["position", "name", "victories"]
+    if sort_field not in valid_fields:
+        sort_field = "position"
+    
+    if sort_field == "position":
+        sort_field = "position" if sort_order == "asc" else "-position"
+    else:
+        sort_field = f"-{sort_field}" if sort_order == "desc" else sort_field
+    
+    years = TeamStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
+
+    if selected_year:
+        standings = TeamStanding.objects.filter(year=selected_year).order_by(sort_field)
+    else:
+        standings = None
+    
+    return render(request, "team_standings.html", {
+        "team_standings": standings,
+        "years": years,
+        "current_sort": sort_field.lstrip("-"),
+        "current_order": sort_order,
+    })
 
 def driver_detail(request, id):
     driver = Driver.objects.get(id=id)
