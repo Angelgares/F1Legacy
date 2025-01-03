@@ -2,3 +2,4 @@ django
 beautifulsoup4 
 requests
 whoosh
+urllib3

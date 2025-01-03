@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from django.db.models import Q
 from django.db import transaction
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,9 +18,9 @@ from f1legacy.scripts.whoosh_index import add_driver_data, add_team_data, get_dr
 def get_drivers():
     url = "https://www.formula1.com/en/drivers"
 
-    response = requests.get(url)
+    try:
+        response = get_retry_session().get(url)
 
-    if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
 
         drivers = soup.find_all("a", class_="group focus-visible:outline-0")
@@ -27,9 +29,9 @@ def get_drivers():
             href = driver["href"]
             detail_url = f"https://www.formula1.com{href}"
 
-            driver_response = requests.get(detail_url)
+            try:
+                driver_response = get_retry_session().get(detail_url)
 
-            if driver_response.status_code == 200:
                 driver_soup = BeautifulSoup(driver_response.text, "html.parser")
 
                 try:
@@ -142,18 +144,21 @@ def get_drivers():
                     championships=championships,
                     image=image,
                 )
-
-    else:
-        print(f"Error al acceder a la página: {response.status_code}")
+            
+            except (requests.RequestException, AttributeError) as e:
+                print(f"Error fetching driver data: {e}")
+                continue
+    except requests.RequestException as e:
+        print(f"Error fetching driver list: {e}")
 
     add_driver_data(get_driver_index())
 
 def get_teams():
     url = "https://www.formula1.com/en/teams"
 
-    response = requests.get(url)
+    try:
+        response = get_retry_session().get(url)
 
-    if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
 
         teams = soup.find_all("a", class_="group focus-visible:outline-0")
@@ -162,9 +167,9 @@ def get_teams():
             href = team["href"]
             detail_url = f"https://www.formula1.com{href}"
 
-            team_response = requests.get(detail_url)
+            try:
+                team_response = get_retry_session().get(detail_url)
 
-            if team_response.status_code == 200:
                 team_soup = BeautifulSoup(team_response.text, "html.parser")
 
                 try:
@@ -254,9 +259,13 @@ def get_teams():
                     image=image,
                 )
 
-            else:
-                print(f"Error al acceder a la página: {response.status_code}")
-                
+            except (requests.RequestException, AttributeError) as e:
+                print(f"Error fetching team data: {e}")
+                continue
+
+    except requests.RequestException as e:
+        print(f"Error fetching team list: {e}")
+    
     add_team_data(get_team_index())
 
 def get_driver_standings(start_year, end_year):
@@ -265,9 +274,9 @@ def get_driver_standings(start_year, end_year):
     for year in range(start_year, end_year + 1):
         year_url = url.format(year=year)
 
-        response = requests.get(year_url)
+        try:
+            response = get_retry_session().get(year_url, timeout=10)
 
-        if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
 
             drivers = soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
@@ -295,8 +304,9 @@ def get_driver_standings(start_year, end_year):
                     points=points,
                 )
             
-        else:
-            print(f"Error al acceder a la página: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"Error fetching driver standings: {e}")
+
 
 def get_team_standings(start_year, end_year):
     url = "https://www.formula1.com/en/results/{year}/team"
@@ -304,9 +314,9 @@ def get_team_standings(start_year, end_year):
     for year in range(start_year, end_year + 1):
         year_url = url.format(year=year)
 
-        response = requests.get(year_url)
+        try:
+            response = get_retry_session().get(year_url, timeout=10)
 
-        if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
 
             teams = soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
@@ -333,8 +343,8 @@ def get_team_standings(start_year, end_year):
                     points=points,
                 )
             
-        else:
-            print(f"Error al acceder a la página: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"Error fetching team standings: {e}")
 
 @transaction.atomic
 def get_grand_prixes(start_year, end_year):
@@ -343,9 +353,9 @@ def get_grand_prixes(start_year, end_year):
     for year in range(start_year, end_year + 1):
         year_url = url.format(year=year)
 
-        response = requests.get(year_url)
+        try:
+            response = get_retry_session().get(year_url, timeout=5)
 
-        if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
 
             grand_prixes = soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
@@ -359,9 +369,9 @@ def get_grand_prixes(start_year, end_year):
 
                 grand_prix_url = f"https://www.formula1.com/en/results/{year}/{href}"
 
-                grand_prix_response = requests.get(grand_prix_url)
+                try:
+                    grand_prix_response = requests.get(grand_prix_url)
 
-                if grand_prix_response.status_code == 200:
                     grand_prix_soup = BeautifulSoup(grand_prix_response.text, "html.parser")
 
                     try:
@@ -383,13 +393,16 @@ def get_grand_prixes(start_year, end_year):
                         start_date=start_date,
                         end_date=end_date,
                     )
+                except requests.RequestException as e:
+                    print(f"Error fetching grand prix data: {e}")
+                    continue    
 
                 # Starting Grid scraping
 
                 starting_grid_url = grand_prix_url.replace('race-result', 'starting-grid')
-                starting_grid_repsonse = requests.get(starting_grid_url)
+                try:   
+                    starting_grid_repsonse = get_retry_session().get(starting_grid_url)
 
-                if starting_grid_repsonse.status_code == 200:
                     starting_grid_soup = BeautifulSoup(starting_grid_repsonse.text, "html.parser")
                     starting_grid_info = starting_grid_soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
                    
@@ -417,11 +430,14 @@ def get_grand_prixes(start_year, end_year):
                             lap_time=lap_time,
                         )
 
+                except requests.RequestException as e:
+                    print(f"Error fetching starting grid data: {e}")
+
                 # Race Result scraping
 
-                race_result_response = requests.get(grand_prix_url)
+                try:
+                    race_result_response = requests.get(grand_prix_url)
 
-                if race_result_response.status_code == 200:
                     race_result_soup = BeautifulSoup(race_result_response.text, "html.parser")
                     race_result_info = race_result_soup.find('table', class_='f1-table f1-table-with-data w-full').find('tbody').find_all('tr')
 
@@ -467,10 +483,26 @@ def get_grand_prixes(start_year, end_year):
                             total_time=total_time,
                             points=points,
                         )
+                
+                except requests.RequestException as e:
+                    print(f"Error fetching race result data: {e}")
+                
+        except requests.RequestException as e:
+            print(f"Error fetching grand prix list: {e}")
 
-        else:
-            print(f"Error al acceder a la página: {response.status_code}")
 
+def get_retry_session():
+    retry_strategy = Retry(
+        total=5, 
+        backoff_factor=1,
+        status_forcelist=[500, 502, 503, 504], 
+        allowed_methods=["HEAD", "GET", "OPTIONS"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 def get_flag_png(data):
     """
