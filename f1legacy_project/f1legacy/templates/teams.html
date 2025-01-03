@@ -36,6 +36,7 @@
     <main class="content">
         <div class="driver-header">
             <h1>Teams</h1>
+            {% if teams %}
             <p>Meet the teams competing in the current Formula 1 season</p>
             <div class="search-container">
                 <p class="search-title">Advanced filtering by teams details:</p>
@@ -68,6 +69,9 @@
                 </div>
             </div>
             {% endfor %}
+            {% else %}
+            <p>No teams available</p>
+            {% endif %}
         </div>
     </main>
     <footer>
