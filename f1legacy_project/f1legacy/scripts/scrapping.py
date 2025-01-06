@@ -404,7 +404,7 @@ def get_grand_prixes(start_year, end_year):
                     starting_grid_repsonse = get_retry_session().get(starting_grid_url)
 
                     starting_grid_soup = BeautifulSoup(starting_grid_repsonse.text, "html.parser")
-                    starting_grid_info = starting_grid_soup.find('table', class_='f1-table f1-table-with-data w-full').find_all('tr')[1:]
+                    starting_grid_info = starting_grid_soup.find('table', class_='f1-table f1-table-with-data w-full').find('tbody').find_all('tr')
                    
                     for sg_info in starting_grid_info:
                         try:
@@ -591,3 +591,36 @@ def parse_dates(date_string):
     end_date = end_date.strftime("%Y-%m-%d")
 
     return start_date, end_date
+
+def set_fastest_lap(race_result):
+    """
+    Checks if a RaceResult is eligible for the fastest lap point among the top 10 drivers.
+
+    :param race_result: A RaceResult object.
+    :return: True if the RaceResult receives the extra point, otherwise False.
+    """
+    normal_points = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+    
+    position = race_result.position
+    points = race_result.points
+
+    if position <= 10 and points == normal_points[position - 1] + 1:
+        return True
+    return False
+
+def assign_diff_positions(starting_grid_list, race_results_list):
+    """
+    Assigns the `diff_positions` attribute to each RaceResult instance based on position comparison.
+
+    :param starting_grid_list: List of StartingGrid objects.
+    :param race_results_list: List of RaceResult objects.
+    """
+    starting_grid_positions = {grid.id: grid.position for grid in starting_grid_list}
+
+    for result in race_results_list:
+        starting_position = starting_grid_positions.get(result.starting_grid.id, None)
+
+        if starting_position is not None and result.position is not None:
+            result.diff_positions = starting_position - result.position
+        else:
+            result.diff_positions = None
