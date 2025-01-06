@@ -10,4 +10,6 @@ urlpatterns = [
     path('team_standings/', views.team_standings, name='team_standings'),
     path('drivers/<int:id>/', views.driver_detail, name='driver_detail'),
     path('teams/<int:id>/', views.team_detail, name='team_detail'),
+    path('race_results/', views.race_results, name='race_results'),
+    path('race_results/<int:year>/<int:grand_prix_id>/', views.race_results_detail, name='race_results_detail'),
 ]

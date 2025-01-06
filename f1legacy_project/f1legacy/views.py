@@ -1,19 +1,18 @@
 import os, sys, django
 from django.shortcuts import render, redirect
-from django.db.models import Case, When, Value, IntegerField
+from django.db.models import Case, When, Value, IntegerField, F
 
-from f1legacy.scripts.scrapping import get_teams, get_drivers, calculate_age, get_driver_standings, get_team_standings, get_grand_prixes
+from f1legacy.scripts.scrapping import get_teams, get_drivers, calculate_age, get_driver_standings, get_team_standings, get_grand_prixes, set_fastest_lap, assign_diff_positions
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
-from f1legacy.models import Driver, Team, DriverStanding, TeamStanding
+from f1legacy.models import Driver, Team, DriverStanding, TeamStanding, GrandPrix, StartingGrid, RaceResult
 from whoosh.qparser import MultifieldParser
 from whoosh.query import Term, NumericRange
 from whoosh.index import EmptyIndexError
 from f1legacy.scripts.whoosh_index import create_indexes, get_driver_index, get_team_index
-
 
 def index(request):
     return render(request, "index.html")
@@ -208,3 +207,69 @@ def driver_detail(request, id):
 def team_detail(request, id):
     team = Team.objects.get(id=id)
     return render(request, "team_detail.html", {"team": team})
+
+def race_results(request):
+    selected_year = request.GET.get("year")
+
+    years = (
+        GrandPrix.objects.annotate(year=F("start_date__year"))
+        .values_list("year", flat=True)
+        .distinct()
+        .order_by("-year")
+    )
+
+    if selected_year:
+        try:
+            selected_year = int(selected_year)
+            standings = (
+                GrandPrix.objects.annotate(year=F("start_date__year"))
+                .filter(year=selected_year)
+                .order_by("start_date")
+            )
+        except ValueError:
+            standings = None
+    else:
+        standings = None
+
+    return render(request, "race_results.html", {
+        "grand_prixes": standings,
+        "years": years,
+        "selected_year": selected_year, 
+    })
+
+def race_results_detail(request, year, grand_prix_id):
+    grand_prix = GrandPrix.objects.get(id=grand_prix_id)
+    
+    starting_grid = (
+        StartingGrid.objects.filter(grand_prix=grand_prix_id)
+        .annotate(
+            adjusted_position=Case(
+                When(position=0, then=Value(9999)),
+                default="position",
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("adjusted_position")
+    )
+
+    race_results = (
+        RaceResult.objects.filter(starting_grid__grand_prix=grand_prix_id)
+        .annotate(
+            adjusted_position=Case(
+                When(position=0, then=Value(9999)),
+                default="position",
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("adjusted_position")
+    )
+
+    for race_result in race_results:
+        race_result.fastest_lap = set_fastest_lap(race_result)
+    assign_diff_positions(starting_grid, race_results)
+
+    return render(request, "race_results_detail.html", {
+        "grand_prix": grand_prix,
+        "starting_grid": starting_grid,
+        "race_results": race_results,
+    })
