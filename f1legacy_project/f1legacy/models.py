@@ -78,4 +78,4 @@ class RaceResult(models.Model):
     points = models.FloatField(blank=True, null=True)
 
     def __str__(self):
-        return f'{self.grand_prix.name} - {self.driver} - {self.position}'
+        return f'{self.starting_grid.grand_prix.name} - {self.starting_grid.driver} - {self.position}'
