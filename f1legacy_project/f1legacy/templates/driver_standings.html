@@ -43,8 +43,8 @@
                     <div class="search-row">
                         <div class="year-dropdown">
                             <select name="year" class="dropdown-select" required>
-                                {% for year in years %}
-                                <option value="{{ year }}" {% if y|stringformat:"s" == request.GET.year %}selected{% endif %}>{{ year }}</option>
+                                {% for y in years %}
+                                <option value="{{ y }}" {% if y|stringformat:"s" == request.GET.year %}selected{% endif %}>{{ y }}</option>
                                 {% endfor %}
                             </select>
                         </div>
