@@ -292,13 +292,21 @@ footer {
     background-color: #222;
     padding: 1.5em 2em;
     border-radius: 15px;
-    margin: 1em auto 0 auto;
+    margin: 0.5em auto 0 auto;
     text-align: center;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
     width: fit-content;
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+.search-container.hidden {
+    display: none;
+}
+
+.search-container.visible {
+    display: flex;
 }
 
 .search-row {
@@ -358,6 +366,11 @@ footer {
 
 .search-button:hover {
     background-color: #a00000;
+}
+
+.search-buttons {
+    display: flex;
+    gap: 1em;
 }
 
 .details-title {
@@ -527,7 +540,6 @@ footer {
 .dropbtn {
     color: #fff;
     text-decoration: none;
-    font-size: 0.9rem;
     padding: 0.5em 0.5em;
     cursor: pointer;
 }
@@ -618,6 +630,50 @@ tr:nth-child(odd) {
     border-radius: 0 10px 10px 0;
 }
 
+.table-container {
+    margin-top: 1.5em;
+    width: 100%;
+}
+
+.tables-container {
+    display: flex;
+    justify-content: center;
+    gap: 2em;
+    flex-wrap: wrap;
+    margin-top: 1.5em;
+}
+
+.tables-container.hidden {
+    display: none;
+}
+
+.tables-container.visible {
+    display: flex;
+}
+
+.table-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+}
+
+.table-wrapper.hidden {
+    display: none;
+}
+
+.table-wrapper.visible {
+    display: flex;
+}
+
+.table-title {
+    font-family: 'Audiowide', sans-serif;
+    font-size: 1.5rem;
+    color: #b40401;
+    margin-top: 0.2em;
+    margin-bottom: 0.7em;
+    text-align: center;
+    text-transform: uppercase;
+}
 .year-dropdown {
     position: relative;
     display: inline-block;
@@ -657,4 +713,41 @@ tr:nth-child(odd) {
     border-radius: 10px; 
     padding: 0.5em;
     text-align: left;
+}
+
+.race-dropdown {
+    position: relative;
+    display: inline-block;
+    font-family: 'Audiowide', sans-serif;
+    background-color: #000; 
+    color: white; 
+    border: 2px solid #b40401; 
+    padding: 0.8em 1.5em;
+    font-size: 1rem;
+    border-radius: 10px; 
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    text-align: center;
+    text-transform: uppercase;
+    width: 200px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.points-container {
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    gap: 0.5em; 
+}
+
+.points-container img {
+    width: 35px;
+    height: 35px;
+}
+
+.fastest-lap-points {
+    color: #800080; 
+    font-weight: bold;
 }

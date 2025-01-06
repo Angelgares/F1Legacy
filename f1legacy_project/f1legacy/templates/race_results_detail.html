@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% load static %}
+    {% load custom_filters %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Race Results - F1 Legacy</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'f1.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'f1_logo.png' %}" alt="F1 Legacy Logo">
+            </a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'drivers' %}">Drivers</a></li>
+                <li><a href="{% url 'teams' %}">Teams</a></li>
+                <li class="dropdown">
+                    <a class="dropbtn">Standings</a>
+                    <div class="dropdown-content">
+                        <a href="{% url 'driver_standings' %}">Driver Standings</a>
+                        <a href="{% url 'team_standings' %}">Team Standings</a>
+                    </div>
+                </li>
+                <li><a href="{% url 'race_results' %}">Races</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="content">
+        <div class="driver-header">
+            <h1>Race Results</h1>
+            <div class="search-container">
+                <h2>{{ grand_prix.name }}</h2>
+                <p>Location: {{ grand_prix.location }}</p>
+                <p>Date: {{ grand_prix.start_date|date:"d" }} - {{ grand_prix.end_date|date:"d M Y" }}</p>
+                <div class="search-buttons">
+                    <button id="starting-grid-btn" class="race-dropdown" onclick="toggleButtonStyle(this)">Starting
+                        Grid</button>
+                    <button id="race-results-btn" class="race-dropdown" onclick="toggleButtonStyle(this)">Race
+                        Results</button>
+                </div>
+            </div>
+        </div>
+        </div>
+        <div id="search-container" class="search-container hidden">
+            <div id="tables-container" class="tables-container hidden">
+                <div id="starting-grid-table" class="table-wrapper hidden">
+                    <h3 class="table-title">Starting Grid</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="table-button left">Position</th>
+                                <th class="table-button">Driver</th>
+                                <th class="table-button">Car</th>
+                                <th class="table-button right">Lap Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grid in starting_grid %}
+                            <tr>
+                                <td>{% if grid.position == 0 %}*{% else %}{{ grid.position }}{% endif %}</td>
+                                <td>{{ grid.driver }}</td>
+                                <td>{{ grid.car }}</td>
+                                <td>{{ grid.lap_time }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4">No starting grid data available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="race-results-table" class="table-wrapper hidden">
+                    <h3 class="table-title">Race Results</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="table-button left">Position</th>
+                                <th class="table-button">Driver</th>
+                                <th class="table-button">Laps Completed</th>
+                                <th class="table-button">Total Time</th>
+                                <th class="table-button right">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in race_results %}
+                            <tr>
+                                <td>
+                                    {% if result.position == 0 %}
+                                        *
+                                    {% else %}
+                                        {{ result.position }}
+                                        <span style="font-size: 0.8em; margin-left: 5px;">
+                                            {% if result.diff_positions > 0 %}
+                                                <span style="color: green;">&#x25B2; {{ result.diff_positions }}</span> 
+                                            {% elif result.diff_positions < 0 %}
+                                                <span style="color: red;">&#x25BC; {{ result.diff_positions|abs_value }}</span>
+                                            {% else %}
+                                                <span style="color: white;">&#x2015;</span>
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ result.starting_grid.driver }}</td>
+                                <td>{{ result.laps_completed }}</td>
+                                <td>{{ result.total_time }}</td>
+                                <td>
+                                    <div class="points-container">
+                                        <span 
+                                            {% if result.fastest_lap %}
+                                            class="fastest-lap-points"
+                                            {% endif %}
+                                        >
+                                            {{ result.points|stringformat:"d" }}
+                                        </span>
+                                        {% if result.fastest_lap %}
+                                        <img src="{% static 'fastest_lap.png' %}" alt="Fastest Lap">
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5">No race results available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 F1 Legacy | All Rights Reserved</p>
+    </footer>
+    <script>
+        function toggleButtonStyle(button) {
+            const searchContainer = document.getElementById('search-container');
+            const tablesContainer = document.getElementById('tables-container');
+            const startingGridTable = document.getElementById('starting-grid-table');
+            const raceResultsTable = document.getElementById('race-results-table');
+            const startingGridBtn = document.getElementById('starting-grid-btn');
+            const raceResultsBtn = document.getElementById('race-results-btn');
+
+            if (button.id === 'starting-grid-btn') {
+                if (button.classList.contains('race-dropdown')) {
+                    button.classList.remove('race-dropdown');
+                    button.classList.add('search-button');
+                    startingGridTable.classList.remove('hidden');
+                    startingGridTable.classList.add('visible');
+                } else {
+                    button.classList.remove('search-button');
+                    button.classList.add('race-dropdown');
+                    startingGridTable.classList.remove('visible');
+                    startingGridTable.classList.add('hidden');
+                }
+            } else if (button.id === 'race-results-btn') {
+                if (button.classList.contains('race-dropdown')) {
+                    button.classList.remove('race-dropdown');
+                    button.classList.add('search-button');
+                    raceResultsTable.classList.remove('hidden');
+                    raceResultsTable.classList.add('visible');
+                } else {
+                    button.classList.remove('search-button');
+                    button.classList.add('race-dropdown');
+                    raceResultsTable.classList.remove('visible');
+                    raceResultsTable.classList.add('hidden');
+                }
+            }
+
+            const anyButtonActive =
+                startingGridBtn.classList.contains('search-button') ||
+                raceResultsBtn.classList.contains('search-button');
+
+            if (anyButtonActive) {
+                searchContainer.classList.remove('hidden');
+                searchContainer.classList.add('visible');
+                tablesContainer.classList.remove('hidden');
+                tablesContainer.classList.add('visible');
+            } else {
+                searchContainer.classList.remove('visible');
+                searchContainer.classList.add('hidden');
+                tablesContainer.classList.remove('visible');
+                tablesContainer.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+
+</html>
