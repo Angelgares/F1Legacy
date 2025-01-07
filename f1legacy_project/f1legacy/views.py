@@ -25,42 +25,22 @@ def drivers_view(request):
     races = request.GET.get("races", "").strip()
     victories = request.GET.get("victories", "").strip()
 
-    driver_results = []
-    filters = []
+    filters_applied = any([query, number, championships, races, victories])
+
     try:
         index = get_driver_index()
-        with index.searcher() as searcher:
-            parser = MultifieldParser(["name", "number", "championships", "races", "victories"], index.schema)
+        parser = MultifieldParser(["name", "number", "championships", "races", "victories"], index.schema)
+        filters = build_driver_filters(query, number, championships, races, victories, parser)
 
-            if query:
-                filters.append(parser.parse(query))
-            if number:
-                filters.append(Term("number", number))
-            if championships:
-                filters.append(NumericRange("championships", int(championships), None))
-            if races:
-                filters.append(NumericRange("races", int(races), None))
-            if victories:
-                filters.append(NumericRange("victories", int(victories), None))
-
-            if filters:
-                final_query = filters[0]
-                for filter_query in filters[1:]:
-                    final_query &= filter_query
-
-                results = searcher.search(final_query, limit=None)
-                driver_results = [Driver.objects.get(id=result["id"]) for result in results]
-            else:
-                driver_results = Driver.objects.all()
-
-    except EmptyIndexError:
-        driver_results = Driver.objects.all()
-
-    except FileNotFoundError:
-        driver_results = Driver.objects.all()
+        if filters_applied:
+            driver_results = get_driver_results_from_index(index, filters)
+        else:
+            driver_results = get_driver_results_from_db()
+    except (EmptyIndexError, FileNotFoundError):
+        driver_results = [] if filters_applied else get_driver_results_from_db()
 
     return render(request, "drivers.html", {
-        "drivers": driver_results, 
+        "drivers": driver_results,
         "query": query,
         "request": request,
     })
@@ -70,39 +50,22 @@ def teams_view(request):
     championships = request.GET.get("championships", "").strip()
     victories = request.GET.get("victories", "").strip()
 
-    team_results = []
-    filters = []
+    filters_applied = any([query, championships, victories])
 
     try:
         index = get_team_index()
-        with index.searcher() as searcher:
-            parser = MultifieldParser(["name", "championships", "victories"], index.schema)
-
-            if query:
-                filters.append(parser.parse(query))
-            if championships:
-                filters.append(NumericRange("championships", int(championships), None))
-            if victories:
-                filters.append(NumericRange("victories", int(victories), None))
-
-            if filters:
-                final_query = filters[0]
-                for filter_query in filters[1:]:
-                    final_query &= filter_query
-
-                results = searcher.search(final_query, limit=None)
-                team_results = [Team.objects.get(id=result["id"]) for result in results]
-            else:
-                team_results = Team.objects.all()
-
-    except EmptyIndexError:
-        team_results = Team.objects.all()
-
-    except FileNotFoundError:
-        team_results = Team.objects.all()
+        parser = MultifieldParser(["name", "championships", "victories"], index.schema)
+        filters = build_team_filters(query, championships, victories, parser)
+        
+        if filters_applied:
+            team_results = get_team_results_from_index(index, filters)
+        else:
+            team_results = get_team_results_from_db()
+    except (EmptyIndexError, FileNotFoundError):
+        team_results = [] if filters_applied else get_team_results_from_db()
 
     return render(request, "teams.html", {
-        "teams": team_results, 
+        "teams": team_results,
         "query": query,
         "request": request,
     })
@@ -282,3 +245,121 @@ def race_results_detail(request, year, grand_prix_id):
         "starting_grid": starting_grid,
         "race_results": race_results,
     })
+
+def build_driver_filters(query, number, championships, races, victories, parser):
+    filters = []
+    if query:
+        filters.append(parser.parse(query))
+    if number:
+        filters.append(Term("number", number))
+    if championships:
+        filters.append(NumericRange("championships", int(championships), None))
+    if races:
+        filters.append(NumericRange("races", int(races), None))
+    if victories:
+        filters.append(NumericRange("victories", int(victories), None))
+    return filters
+
+def build_team_filters(query, championships, victories, parser):
+    filters = []
+    if query:
+        filters.append(parser.parse(query))
+    if championships:
+        filters.append(NumericRange("championships", int(championships), None))
+    if victories:
+        filters.append(NumericRange("victories", int(victories), None))
+    return filters
+
+
+def get_driver_results_from_index(index, filters):
+    with index.searcher() as searcher:
+        if not filters:
+            return []
+        final_query = filters[0]
+        for filter_query in filters[1:]:
+            final_query &= filter_query
+        results = searcher.search(final_query, limit=None)
+        return [
+            {
+                "id": result.get("id"),
+                "name": result.get("name"),
+                "number": result.get("number"),
+                "country": result.get("country"),
+                "country_flag": result.get("country_flag"),
+                "team": result.get("team"),
+                "birth_date": result.get("birth_date"),
+                "points": result.get("points"),
+                "podiums": result.get("podiums"),
+                "championships": result.get("championships"),
+                "races": result.get("races"),
+                "victories": result.get("victories"),
+                "image": result.get("image"),
+            }
+            for result in results
+        ]
+
+def get_team_results_from_index(index, filters):
+    if not filters:
+        return []
+
+    final_query = filters[0]
+    for filter_query in filters[1:]:
+        final_query &= filter_query
+
+    with index.searcher() as searcher:
+        results = searcher.search(final_query, limit=None)
+        return [
+            {
+                "id": result["id"],
+                "name": result["name"],
+                "base": result.get("base"),
+                "team_principal": result.get("team_principal"),
+                "chassis": result.get("chassis"),
+                "power_unit": result.get("power_unit"),
+                "championships": result.get("championships"),
+                "victories": result.get("victories"),
+                "pole_positions": result.get("pole_positions"),
+                "fastest_laps": result.get("fastest_laps"),
+                "image": result.get("image"),
+            }
+            for result in results
+        ]
+
+
+def get_driver_results_from_db():
+    return [
+        {
+            "id": str(driver.id),
+            "name": driver.name,
+            "number": driver.number,
+            "country": driver.country,
+            "country_flag": driver.country_flag,
+            "team": str(driver.team.id) if driver.team else None,
+            "birth_date": driver.birth_date.strftime("%Y-%m-%d") if driver.birth_date else None,
+            "points": driver.points,
+            "podiums": driver.podiums,
+            "championships": driver.championships,
+            "races": driver.races,
+            "victories": driver.victories,
+            "image": driver.image,
+        }
+        for driver in Driver.objects.all()
+    ]
+
+def get_team_results_from_db():
+    return [
+        {
+            "id": str(team.id),
+            "name": team.name,
+            "base": team.base,
+            "team_principal": team.team_principal,
+            "chassis": team.chassis,
+            "power_unit": team.power_unit,
+            "championships": team.championships,
+            "victories": team.victories,
+            "pole_positions": team.pole_positions,
+            "fastest_laps": team.fastest_laps,
+            "image": team.image,
+        }
+        for team in Team.objects.all()
+    ]
