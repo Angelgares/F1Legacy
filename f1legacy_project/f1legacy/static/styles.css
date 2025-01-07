@@ -301,6 +301,10 @@ footer {
     align-items: center;
 }
 
+.search-container.button {
+    margin: 0.5em 0 0 0;
+}
+
 .search-container.hidden {
     display: none;
 }
@@ -692,7 +696,7 @@ tr:nth-child(odd) {
     -webkit-appearance: none;
     -moz-appearance: none;
     text-align: center;
-    width: 120px;
+    width: auto;
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 

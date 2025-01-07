@@ -37,7 +37,8 @@
         <div class="driver-header">
             <h1>Team Standings</h1>
             {% if years %}
-            <div class="search-container">
+            <div class="search-row">
+            <div class="search-container button">
                 <form method="get" action="{% url 'team_standings' %}" class="search-form">
                     <p>Select a year to view team standings:</p>
                     <div class="search-row">
@@ -52,12 +53,31 @@
                     </div>
                 </form>
             </div>
+            <div class="search-container button">
+                <form method="get" action="{% url 'team_standings' %}" class="search-form">
+                    <p>Filter team standings by name:</p>
+                    <div class="search-row">
+                        <div class="year-dropdown">
+                            <select name="team" class="dropdown-select" required>
+                                {% for team in teams %}
+                                <option value="{{ team }}" {% if team == request.GET.team %}selected{% endif %}>
+                                    {{ team }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="search-button">Filter Team</button>
+                    </div>
+                </form>
+            </div>
+            </div>
         </div>
         {% if team_standings %}
         <div class="search-container">
             <table>
                 <thead>
                     <tr>
+                        {% if not request.GET.team %}
                         <th class="table-button left">
                             <a href="?year={{ request.GET.year }}&sort=position&order={% if current_sort == 'position' and current_order == 'asc' %}desc{% else %}asc{% endif %}">
                                 POSITION
@@ -70,19 +90,40 @@
                                 {% endif %}
                             </a>
                         </th>
+                        {% else %}
+                        <th class="table-button left">POSITION</th>
+                        {% endif %}
+                        {% if request.GET.team %}
+                        <th class="table-button">
+                            YEAR
+                        </th>
+                        {% endif %}
+                        {% if not request.GET.team %}
                         <th class="table-button">
                             TEAM NAME
                         </th>
+                        {% endif %}
+                        {% if not request.GET.team %}
                         <th class="table-button right">
                             POINTS
                         </th>
+                        {% else %}
+                        <th class="table-button">
+                            POINTS
+                        </th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for standing in team_standings %}
                     <tr>
                         <td>{% if standing.position == 0 %}*{% else %}{{ standing.position }}{% endif %}</td>
+                        {% if request.GET.team %}
+                        <td>{{ standing.year }}</td>
+                        {% endif %}
+                        {% if not request.GET.team %}
                         <td>{{ standing.name }}</td>
+                        {% endif %}
                         <td>
                             {% if standing.points|stringformat:"d" == standing.points|stringformat:"g" %}
                             {{ standing.points|stringformat:"d" }}

@@ -37,7 +37,8 @@
         <div class="driver-header">
             <h1>Driver Standings</h1>
             {% if years %}
-            <div class="search-container">
+            <div class="search-row">
+            <div class="search-container button">
                 <form method="get" action="{% url 'driver_standings' %}" class="search-form">
                     <p>Select a year to view driver standings:</p>
                     <div class="search-row">
@@ -52,6 +53,24 @@
                     </div>
                 </form>
             </div>
+            <div class="search-container button">
+                <form method="get" action="{% url 'driver_standings' %}" class="search-form">
+                    <p>Filter driver standings by name:</p>
+                    <div class="search-row">
+                        <div class="year-dropdown">
+                            <select name="driver" class="dropdown-select" required>
+                                {% for driver in drivers %}
+                                <option value="{{ driver }}" {% if driver == request.GET.driver %}selected{% endif %}>
+                                    {{ driver }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="search-button">Filter Driver</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         </div>
         {%if driver_standings %}
         <div class="search-container">
@@ -59,6 +78,7 @@
                 <thead>
                     <tr>
                         <th class="table-button left">
+                            {% if not request.GET.driver %}
                             <a href="?year={{ request.GET.year }}&sort=position&order={% if current_sort == 'position' and current_order == 'asc' %}desc{% else %}asc{% endif %}">
                                 POSITION
                                 {% if current_sort == 'position' %}
@@ -69,11 +89,18 @@
                                     {% endif %}
                                 {% endif %}
                             </a>
+                            {% else %}
+                            POSITION
+                            {% endif %}
                         </th>
+                        {% if request.GET.driver %}
+                        <th class="table-button">YEAR</th>
+                        {% endif %}
+                        {% if not request.GET.driver %}
+                        <th class="table-button">NAME</th>
+                        {% endif %}
                         <th class="table-button">
-                            NAME
-                        </th>
-                        <th class="table-button">
+                            {% if not request.GET.driver %}
                             <a href="?year={{ request.GET.year }}&sort=car&order={% if current_sort == 'car' and current_order == 'asc' %}desc{% else %}asc{% endif %}">
                                 CAR
                                 {% if current_sort == 'car' %}
@@ -84,17 +111,23 @@
                                     {% endif %}
                                 {% endif %}
                             </a>
+                            {% else %}
+                            CAR
+                            {% endif %}
                         </th>
-                        <th class="table-button right">
-                            POINTS
-                        </th>
+                        <th class="table-button right">POINTS</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for standing in driver_standings %}
                     <tr>
                         <td>{% if standing.position == 0 %}*{% else %}{{ standing.position }}{% endif %}</td>
+                        {% if request.GET.driver %}
+                        <td>{{ standing.year }}</td>
+                        {% endif %}
+                        {% if not request.GET.driver %}
                         <td>{{ standing.name }}</td>
+                        {% endif %}
                         <td>{{ standing.car }}</td>
                         <td>
                             {% if standing.points|stringformat:"d" == standing.points|stringformat:"g" %}
@@ -108,6 +141,7 @@
                 </tbody>
             </table>
         </div>
+
         {% endif %}
         {% else %}
         <p>No driver standings available</p>
