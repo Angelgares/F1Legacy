@@ -126,71 +126,80 @@ def load_data(request):
 
 def driver_standings(request):
     selected_year = request.GET.get("year")
-    sort_field = request.GET.get("sort", "position")  
-    sort_order = request.GET.get("order", "asc")  
-    
-    valid_fields = ["position", "name", "car"] 
+    selected_driver = request.GET.get("driver")
+    sort_field = request.GET.get("sort", "position")
+    sort_order = request.GET.get("order", "asc")
+
+    valid_fields = ["position", "name", "car"]
     if sort_field not in valid_fields:
         sort_field = "position"
 
     sort_direction = "" if sort_order == "asc" else "-"
 
-    if selected_year:
-        standings = (
-            DriverStanding.objects.filter(year=selected_year)
-            .annotate(
-                adjusted_position=Case(
-                    When(position=0, then=Value(9999)),
-                    default="position",
-                    output_field=IntegerField(),
-                )
+    standings = DriverStanding.objects.all()
+
+    if selected_driver:
+        standings = standings.filter(name=selected_driver).order_by("year")
+        sort_field = None
+        sort_order = None
+    elif selected_year:
+        standings = standings.filter(year=selected_year)
+        standings = standings.annotate(
+            adjusted_position=Case(
+                When(position=0, then=Value(9999)),
+                default="position",
+                output_field=IntegerField(),
             )
-            .order_by(f"{sort_direction}{'adjusted_position' if sort_field == 'position' else sort_field}")
-        )
-    else:
-        standings = None
+        ).order_by(f"{sort_direction}{'adjusted_position' if sort_field == 'position' else sort_field}")
 
     years = DriverStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
+    drivers = DriverStanding.objects.values_list("name", flat=True).distinct().order_by("name")
 
     return render(request, "driver_standings.html", {
         "driver_standings": standings,
         "years": years,
-        "current_sort": sort_field.lstrip("-"),
+        "drivers": drivers,
+        "current_sort": sort_field.lstrip("-") if sort_field else None,
         "current_order": sort_order,
     })
 
+
 def team_standings(request):
     selected_year = request.GET.get("year")
+    selected_team = request.GET.get("team")
     sort_field = request.GET.get("sort", "position")
     sort_order = request.GET.get("order", "asc")
 
     valid_fields = ["position", "name", "victories"]
     if sort_field not in valid_fields:
         sort_field = "position"
-    
+
     sort_direction = "" if sort_order == "asc" else "-"
-    
-    if selected_year:
-        standings = (
-            TeamStanding.objects.filter(year=selected_year)
-            .annotate(
-                adjusted_position=Case(
-                    When(position=0, then=Value(9999)), 
-                    default="position",
-                    output_field=IntegerField(),
-                )
+
+    standings = TeamStanding.objects.all()
+
+    if selected_team:
+        standings = standings.filter(name=selected_team).order_by("year")
+        sort_field = None
+        sort_order = None
+    elif selected_year:
+        standings = standings.filter(year=selected_year)
+        standings = standings.annotate(
+            adjusted_position=Case(
+                When(position=0, then=Value(9999)),
+                default="position",
+                output_field=IntegerField(),
             )
-            .order_by(f"{sort_direction}{'adjusted_position' if sort_field == 'position' else sort_field}")
-        )
-    else:
-        standings = None
-    
+        ).order_by(f"{sort_direction}{'adjusted_position' if sort_field == 'position' else sort_field}")
+
     years = TeamStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
+    teams = TeamStanding.objects.values_list("name", flat=True).distinct().order_by("name")
 
     return render(request, "team_standings.html", {
         "team_standings": standings,
         "years": years,
-        "current_sort": sort_field.lstrip("-"),
+        "teams": teams,
+        "current_sort": sort_field.lstrip("-") if sort_field else None,
         "current_order": sort_order,
     })
 
