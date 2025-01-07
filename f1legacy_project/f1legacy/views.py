@@ -1,6 +1,7 @@
 import os, sys, django
 from django.shortcuts import render, redirect
 from django.db.models import Case, When, Value, IntegerField, F
+from datetime import datetime
 
 from f1legacy.scripts.scrapping import get_teams, get_drivers, calculate_age, get_driver_standings, get_team_standings, get_grand_prixes, set_fastest_lap, assign_diff_positions
 
@@ -8,11 +9,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
-from f1legacy.models import Driver, Team, DriverStanding, TeamStanding, GrandPrix, StartingGrid, RaceResult
-from whoosh.qparser import MultifieldParser
+from f1legacy.models import Driver, Team, GrandPrix, StartingGrid, RaceResult
+from whoosh.qparser import MultifieldParser, QueryParser
+from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.query import Term, NumericRange
+from whoosh.sorting import FieldFacet
 from whoosh.index import EmptyIndexError
-from f1legacy.scripts.whoosh_index import create_indexes, get_driver_index, get_team_index
+from f1legacy.scripts.whoosh_index import create_indexes, get_driver_index, get_team_index, get_driver_standings_index, get_team_standings_index, get_race_result_index, get_starting_grid_index, get_grand_prix_index
 
 def index(request):
     return render(request, "index.html")
@@ -97,35 +100,55 @@ def driver_standings(request):
     if sort_field not in valid_fields:
         sort_field = "position"
 
-    sort_direction = "" if sort_order == "asc" else "-"
+    sort_direction = sort_order == "desc"
 
-    standings = DriverStanding.objects.all()
+    index = get_driver_standings_index()
+    results = []
 
-    if selected_driver:
-        standings = standings.filter(name=selected_driver).order_by("year")
-        sort_field = None
-        sort_order = None
-    elif selected_year:
-        standings = standings.filter(year=selected_year)
-        standings = standings.annotate(
-            adjusted_position=Case(
-                When(position=0, then=Value(9999)),
-                default="position",
-                output_field=IntegerField(),
-            )
-        ).order_by(f"{sort_direction}{'adjusted_position' if sort_field == 'position' else sort_field}")
+    with index.searcher() as searcher:
+        parser = MultifieldParser(["name", "car", "year", "position"], schema=index.schema)
+        query = parser.parse("*") 
 
-    years = DriverStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
-    drivers = DriverStanding.objects.values_list("name", flat=True).distinct().order_by("name")
+        if selected_driver:
+            query = parser.parse(f'name:"{selected_driver}"')
+
+        elif selected_year:
+            query = parser.parse(f'year:{selected_year}')
+
+        facets = None
+        if sort_field:
+            facets = FieldFacet(sort_field, reverse=sort_direction)
+        search_results = searcher.search(query, sortedby=facets, limit=None)
+
+        for result in search_results:
+            results.append({
+                "id": result["id"],
+                "name": result["name"],
+                "car": result["car"],
+                "year": result["year"],
+                "position": result["position"],
+                "points": result["points"],
+            })
+
+    years = set()
+    drivers = set()
+
+    with index.searcher() as searcher:
+        all_results = searcher.search(parser.parse("*"), limit=None)
+        for result in all_results:
+            years.add(result["year"])
+            drivers.add(result["name"])
+
+    years = sorted(years, reverse=True)
+    drivers = sorted(drivers)
 
     return render(request, "driver_standings.html", {
-        "driver_standings": standings,
+        "driver_standings": results,
         "years": years,
         "drivers": drivers,
-        "current_sort": sort_field.lstrip("-") if sort_field else None,
+        "current_sort": sort_field,
         "current_order": sort_order,
     })
-
 
 def team_standings(request):
     selected_year = request.GET.get("year")
@@ -137,47 +160,90 @@ def team_standings(request):
     if sort_field not in valid_fields:
         sort_field = "position"
 
-    sort_direction = "" if sort_order == "asc" else "-"
+    sort_direction = sort_order == "desc"
 
-    standings = TeamStanding.objects.all()
+    index = get_team_standings_index()
+    results = []
 
-    if selected_team:
-        standings = standings.filter(name=selected_team).order_by("year")
-        sort_field = None
-        sort_order = None
-    elif selected_year:
-        standings = standings.filter(year=selected_year)
-        standings = standings.annotate(
-            adjusted_position=Case(
-                When(position=0, then=Value(9999)),
-                default="position",
-                output_field=IntegerField(),
-            )
-        ).order_by(f"{sort_direction}{'adjusted_position' if sort_field == 'position' else sort_field}")
+    with index.searcher() as searcher:
+        parser = MultifieldParser(["name", "year", "position", "points"], schema=index.schema)
+        query = parser.parse("*") 
 
-    years = TeamStanding.objects.values_list("year", flat=True).distinct().order_by("-year")
-    teams = TeamStanding.objects.values_list("name", flat=True).distinct().order_by("name")
+        if selected_team:
+            query = parser.parse(f'name:"{selected_team}"')
+        elif selected_year:
+            query = parser.parse(f'year:{selected_year}')
+
+        facets = None
+        if sort_field:
+            facets = FieldFacet(sort_field, reverse=sort_direction)
+        search_results = searcher.search(query, sortedby=facets, limit=None)
+
+        for result in search_results:
+            results.append({
+                "id": result["id"],
+                "name": result["name"],
+                "year": result["year"],
+                "position": result["position"],
+                "points": result["points"],
+            })
+
+    years = set()
+    teams = set()
+
+    with index.searcher() as searcher:
+        all_results = searcher.search(parser.parse("*"), limit=None)
+        for result in all_results:
+            years.add(result["year"])
+            teams.add(result["name"])
+
+    years = sorted(years, reverse=True)
+    teams = sorted(teams)
 
     return render(request, "team_standings.html", {
-        "team_standings": standings,
+        "team_standings": results,
         "years": years,
         "teams": teams,
-        "current_sort": sort_field.lstrip("-") if sort_field else None,
+        "current_sort": sort_field,
         "current_order": sort_order,
     })
 
-
 def driver_detail(request, id):
-    driver = Driver.objects.get(id=id)
-    if driver.birth_date:
-        driver.age = calculate_age(driver.birth_date.strftime("%d/%m/%Y"))
+    try:
+        index = get_driver_index()
+        filters = [Term("id", str(id))]
+        driver_results = get_driver_results_from_index(index, filters)
+        driver = driver_results[0] if driver_results else None
+    except Exception as e:
+        print(f"Error accessing driver index: {e}")
+        driver = None
+
+    if not driver:
+        drivers_from_db = get_driver_results_from_db()
+        driver = next((d for d in drivers_from_db if d["id"] == str(id)), None)
+
+    if driver and driver.get("birth_date"):
+        driver["age"] = calculate_age(datetime.strptime(driver["birth_date"], "%Y-%m-%d").strftime("%d/%m/%Y"))
+        driver["birth_date"] = datetime.strptime(driver["birth_date"], "%Y-%m-%d").strftime("%d/%m/%Y")
     else:
-        driver.age = None
+        driver["age"] = None
+
     return render(request, "driver_detail.html", {"driver": driver})
 
-
 def team_detail(request, id):
-    team = Team.objects.get(id=id)
+    try:
+        index = get_team_index()
+        filters = [Term("id", str(id))]
+        team_results = get_team_results_from_index(index, filters)
+        team = team_results[0] if team_results else None
+    except Exception as e:
+        print(f"Error accessing team index: {e}")
+        team = None
+
+    if not team:
+        teams_from_db = get_team_results_from_db()
+        team = next((t for t in teams_from_db if t["id"] == str(id)), None)
+
     return render(request, "team_detail.html", {"team": team})
 
 def race_results(request):
@@ -325,7 +391,6 @@ def get_team_results_from_index(index, filters):
             for result in results
         ]
 
-
 def get_driver_results_from_db():
     return [
         {
@@ -335,7 +400,7 @@ def get_driver_results_from_db():
             "country": driver.country,
             "country_flag": driver.country_flag,
             "team": str(driver.team.id) if driver.team else None,
-            "birth_date": driver.birth_date.strftime("%Y-%m-%d") if driver.birth_date else None,
+            "birth_date": driver.birth_date.strftime("%d-%m-%Y") if driver.birth_date else None,
             "points": driver.points,
             "podiums": driver.podiums,
             "championships": driver.championships,
