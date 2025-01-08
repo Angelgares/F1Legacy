@@ -21,7 +21,7 @@ Follow these steps to set up the project on your local machine:
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-URL>
+   git clone git@github.com:Angelgares/F1Legacy.git
    cd F1Legacy
    ```
 
