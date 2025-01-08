@@ -242,8 +242,13 @@ def driver_detail(request, id):
         driver = next((d for d in drivers_from_db if d["id"] == str(id)), None)
 
     if driver and driver.get("birth_date"):
-        driver["age"] = calculate_age(datetime.strptime(driver["birth_date"], "%Y-%m-%d").strftime("%d/%m/%Y"))
-        driver["birth_date"] = datetime.strptime(driver["birth_date"], "%Y-%m-%d").strftime("%d/%m/%Y")
+        try:
+            birth_date = datetime.strptime(driver["birth_date"], "%d-%m-%Y")
+        except ValueError:
+            birth_date = datetime.strptime(driver["birth_date"], "%Y-%m-%d")
+        
+        driver["age"] = calculate_age(birth_date.strftime("%d/%m/%Y"))
+        driver["birth_date"] = birth_date.strftime("%d/%m/%Y")
     else:
         driver["age"] = None
 
