@@ -66,3 +66,4 @@ else
 fi
 
 echo -e "${GREEN}Installation completed successfully.${NC}"
+echo -e "${YELLOW}You can anter the virtual environment using: source venv/bin/activate.${NC}"
