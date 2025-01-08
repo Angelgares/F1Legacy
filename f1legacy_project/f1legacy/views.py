@@ -116,17 +116,24 @@ def driver_standings(request):
                 query = parser.parse(f'year:{selected_year}')
 
             if query:
-                facets = FieldFacet(sort_field, reverse=sort_direction) if sort_field else None
-                search_results = searcher.search(query, sortedby=facets, limit=None)
+                search_results = searcher.search(query, limit=None)
                 for result in search_results:
+                    position = result["position"] if result["position"] != 0 else float('inf')
                     results.append({
                         "id": result["id"],
                         "name": result["name"],
                         "car": result["car"],
                         "year": result["year"],
-                        "position": result["position"],
+                        "position": position,
                         "points": result["points"],
                     })
+
+        if sort_field == "car":
+            results.sort(key=lambda x: x["car"].lower(), reverse=sort_direction)
+        elif sort_field == "name":
+            results.sort(key=lambda x: x["name"].lower(), reverse=sort_direction)
+        else:  
+            results.sort(key=lambda x: (x["position"] if x["position"] != float('inf') else float('inf')), reverse=sort_direction)
 
         years = set()
         drivers = set()
@@ -154,6 +161,7 @@ def driver_standings(request):
     })
 
 
+
 def team_standings(request):
     selected_year = request.GET.get("year")
     selected_team = request.GET.get("team")
@@ -179,16 +187,19 @@ def team_standings(request):
                 query = parser.parse(f'year:{selected_year}')
 
             if query:
-                facets = FieldFacet(sort_field, reverse=sort_direction) if sort_field else None
-                search_results = searcher.search(query, sortedby=facets, limit=None)
+                search_results = searcher.search(query, limit=None)
                 for result in search_results:
+                    position = result["position"] if result["position"] != 0 else float('inf')
                     results.append({
                         "id": result["id"],
                         "name": result["name"],
                         "year": result["year"],
-                        "position": result["position"],
+                        "position": position,
                         "points": result["points"],
                     })
+
+        reverse = sort_direction
+        results.sort(key=lambda x: (x["position"] if x["position"] != float('inf') else float('inf')), reverse=reverse)
 
         years = set()
         teams = set()
@@ -214,6 +225,7 @@ def team_standings(request):
         "current_sort": sort_field,
         "current_order": sort_order,
     })
+
 
 def driver_detail(request, id):
     try:
