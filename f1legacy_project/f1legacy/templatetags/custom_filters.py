@@ -9,3 +9,9 @@ def abs_value(value):
         return abs(value)
     except (ValueError, TypeError):
         return value
+    
+@register.filter
+def format_position(value):
+    if value == float('inf'):
+        return '*'
+    return value
