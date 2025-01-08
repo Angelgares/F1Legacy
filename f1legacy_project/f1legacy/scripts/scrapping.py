@@ -26,16 +26,10 @@ from f1legacy.scripts.whoosh_index import (
     add_team_data,
     add_driver_standings_data,
     add_team_standings_data,
-    add_grand_prix_data,
-    add_starting_grid_data,
-    add_race_result_data,
     get_driver_index,
     get_team_index,
     get_driver_standings_index,
     get_team_standings_index,
-    get_grand_prix_index,
-    get_starting_grid_index,
-    get_race_result_index,
 )
 
 
@@ -299,7 +293,7 @@ def get_driver_standings(start_year, end_year):
         year_url = url.format(year=year)
 
         try:
-            response = get_retry_session().get(year_url, timeout=10)
+            response = get_retry_session().get(year_url)
 
             soup = BeautifulSoup(response.text, "html.parser")
 
@@ -309,6 +303,8 @@ def get_driver_standings(start_year, end_year):
                 driver_stats = driver.find_all("td")
                 try:
                     position = driver_stats[0].text.strip()
+                    if position == "DQ":
+                        position = 0
                     name = driver_stats[1].text.strip()[:-3]
                     car = driver_stats[3].text.strip()
                     points = driver_stats[4].text.strip()
@@ -331,7 +327,7 @@ def get_driver_standings(start_year, end_year):
         except requests.RequestException as e:
             print(f"Error fetching driver standings: {e}")
 
-        add_driver_standings_data(get_driver_standings_index())
+    add_driver_standings_data(get_driver_standings_index())
 
 
 def get_team_standings(start_year, end_year):
@@ -341,7 +337,7 @@ def get_team_standings(start_year, end_year):
         year_url = url.format(year=year)
 
         try:
-            response = get_retry_session().get(year_url, timeout=10)
+            response = get_retry_session().get(year_url)
 
             soup = BeautifulSoup(response.text, "html.parser")
 
@@ -372,7 +368,7 @@ def get_team_standings(start_year, end_year):
         except requests.RequestException as e:
             print(f"Error fetching team standings: {e}")
 
-        add_team_standings_data(get_team_standings_index())
+    add_team_standings_data(get_team_standings_index())
 
 @transaction.atomic
 def get_grand_prixes(start_year, end_year):
@@ -421,11 +417,11 @@ def get_grand_prixes(start_year, end_year):
                         start_date=start_date,
                         end_date=end_date,
                     )
+                    print(f"Grand Prix:", gp_name, location, start_date, end_date)
+
                 except requests.RequestException as e:
                     print(f"Error fetching grand prix data: {e}")
                     continue    
-
-                add_grand_prix_data(get_grand_prix_index())
 
                 # Starting Grid scraping
 
@@ -459,11 +455,10 @@ def get_grand_prixes(start_year, end_year):
                             position=position,
                             lap_time=lap_time,
                         )
+                        print(f"Starting grid:", driver, car, position, lap_time)
 
                 except requests.RequestException as e:
                     print(f"Error fetching starting grid data: {e}")
-
-                add_starting_grid_data(get_starting_grid_index())
 
                 # Race Result scraping
 
@@ -493,7 +488,7 @@ def get_grand_prixes(start_year, end_year):
                                 Q(grand_prix__end_date=end_date) & 
                                 Q(driver__icontains=driver)).first()
                             position = rr_info[0].text.strip()
-                            if position == "NC" or position == "EX" or position == "DQ":
+                            if position == "NC" or position == "EX" or position == "DQ" or position == "DNS":
                                 position = 0
                             laps_completed = rr_info[4].text.strip()
                             if laps_completed == "":
@@ -515,11 +510,10 @@ def get_grand_prixes(start_year, end_year):
                             total_time=total_time,
                             points=points,
                         )
+                        print(f"Race result:", driver, car, position, laps_completed, total_time, points)
                 
                 except requests.RequestException as e:
                     print(f"Error fetching race result data: {e}")
-
-                add_race_result_data(get_race_result_index())
                 
         except requests.RequestException as e:
             print(f"Error fetching grand prix list: {e}")
@@ -658,31 +652,3 @@ def assign_diff_positions(starting_grid_list, race_results_list):
             result.diff_positions = starting_position - result.position
         else:
             result.diff_positions = None
-
-# from whoosh.index import open_dir
-
-# def inspect_index(index_dir):
-#     """
-#     Inspecciona y lista todos los documentos almacenados en un índice Whoosh.
-
-#     Args:
-#         index_dir (str): Ruta al directorio del índice.
-
-#     Returns:
-#         None
-#     """
-#     try:
-#         # Abre el índice
-#         index = open_dir(index_dir)
-#         with index.searcher() as searcher:
-#             # Itera sobre todos los documentos
-#             print(f"Documentos en el índice {index_dir}:")
-#             for doc in searcher.all_stored_fields():
-#                 print(doc)
-#     except Exception as e:
-#         print(f"Error al abrir el índice {index_dir}: {e}")
-
-
-# if __name__ == "__main__":
-#     # inspect_index("whoosh_indexes/drivers")
-#     inspect_index("whoosh_indexes/teams")

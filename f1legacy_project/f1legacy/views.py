@@ -1,5 +1,6 @@
 import os, sys, django
 from django.shortcuts import render, redirect
+from django.db import transaction
 from django.db.models import Case, When, Value, IntegerField, F
 from datetime import datetime
 
@@ -10,12 +11,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "f1legacy_project.settings")
 django.setup()
 
 from f1legacy.models import Driver, Team, GrandPrix, StartingGrid, RaceResult
-from whoosh.qparser import MultifieldParser, QueryParser
-from whoosh.qparser.dateparse import DateParserPlugin
+from whoosh.qparser import MultifieldParser
 from whoosh.query import Term, NumericRange
 from whoosh.sorting import FieldFacet
 from whoosh.index import EmptyIndexError
-from f1legacy.scripts.whoosh_index import create_indexes, get_driver_index, get_team_index, get_driver_standings_index, get_team_standings_index, get_race_result_index, get_starting_grid_index, get_grand_prix_index
+from f1legacy.scripts.whoosh_index import create_indexes, get_driver_index, get_team_index, get_driver_standings_index, get_team_standings_index
 
 def index(request):
     return render(request, "index.html")
@@ -73,6 +73,7 @@ def teams_view(request):
         "request": request,
     })
 
+@transaction.atomic
 def load_data(request):
     try:
         start_year = int(request.GET.get("start_year", 2024))
@@ -102,53 +103,56 @@ def driver_standings(request):
 
     sort_direction = sort_order == "desc"
 
-    index = get_driver_standings_index()
-    results = []
+    try:
+        index = get_driver_standings_index()
+        results = []
+        with index.searcher() as searcher:
+            parser = MultifieldParser(["name", "car", "year", "position"], schema=index.schema)
+            query = None
 
-    with index.searcher() as searcher:
-        parser = MultifieldParser(["name", "car", "year", "position"], schema=index.schema)
-        query = parser.parse("*") 
+            if selected_driver:
+                query = parser.parse(f'name:"{selected_driver}"')
+            elif selected_year:
+                query = parser.parse(f'year:{selected_year}')
 
-        if selected_driver:
-            query = parser.parse(f'name:"{selected_driver}"')
+            if query:
+                facets = FieldFacet(sort_field, reverse=sort_direction) if sort_field else None
+                search_results = searcher.search(query, sortedby=facets, limit=None)
+                for result in search_results:
+                    results.append({
+                        "id": result["id"],
+                        "name": result["name"],
+                        "car": result["car"],
+                        "year": result["year"],
+                        "position": result["position"],
+                        "points": result["points"],
+                    })
 
-        elif selected_year:
-            query = parser.parse(f'year:{selected_year}')
+        years = set()
+        drivers = set()
 
-        facets = None
-        if sort_field:
-            facets = FieldFacet(sort_field, reverse=sort_direction)
-        search_results = searcher.search(query, sortedby=facets, limit=None)
+        with index.searcher() as searcher:
+            all_results = searcher.search(parser.parse("*"), limit=None)
+            for result in all_results:
+                years.add(result["year"])
+                drivers.add(result["name"])
 
-        for result in search_results:
-            results.append({
-                "id": result["id"],
-                "name": result["name"],
-                "car": result["car"],
-                "year": result["year"],
-                "position": result["position"],
-                "points": result["points"],
-            })
+        years = sorted(years, reverse=True)
+        drivers = sorted(drivers)
 
-    years = set()
-    drivers = set()
-
-    with index.searcher() as searcher:
-        all_results = searcher.search(parser.parse("*"), limit=None)
-        for result in all_results:
-            years.add(result["year"])
-            drivers.add(result["name"])
-
-    years = sorted(years, reverse=True)
-    drivers = sorted(drivers)
+    except (EmptyIndexError, FileNotFoundError):
+        results = []
+        years = []
+        drivers = []
 
     return render(request, "driver_standings.html", {
-        "driver_standings": results,
+        "driver_standings": results if selected_year or selected_driver else [],
         "years": years,
         "drivers": drivers,
         "current_sort": sort_field,
         "current_order": sort_order,
     })
+
 
 def team_standings(request):
     selected_year = request.GET.get("year")
@@ -156,52 +160,55 @@ def team_standings(request):
     sort_field = request.GET.get("sort", "position")
     sort_order = request.GET.get("order", "asc")
 
-    valid_fields = ["position", "name", "victories"]
+    valid_fields = ["position", "name"]
     if sort_field not in valid_fields:
         sort_field = "position"
 
     sort_direction = sort_order == "desc"
 
-    index = get_team_standings_index()
-    results = []
+    try:
+        index = get_team_standings_index()
+        results = []
+        with index.searcher() as searcher:
+            parser = MultifieldParser(["name", "year", "position"], schema=index.schema)
+            query = None
 
-    with index.searcher() as searcher:
-        parser = MultifieldParser(["name", "year", "position", "points"], schema=index.schema)
-        query = parser.parse("*") 
+            if selected_team:
+                query = parser.parse(f'name:"{selected_team}"')
+            elif selected_year:
+                query = parser.parse(f'year:{selected_year}')
 
-        if selected_team:
-            query = parser.parse(f'name:"{selected_team}"')
-        elif selected_year:
-            query = parser.parse(f'year:{selected_year}')
+            if query:
+                facets = FieldFacet(sort_field, reverse=sort_direction) if sort_field else None
+                search_results = searcher.search(query, sortedby=facets, limit=None)
+                for result in search_results:
+                    results.append({
+                        "id": result["id"],
+                        "name": result["name"],
+                        "year": result["year"],
+                        "position": result["position"],
+                        "points": result["points"],
+                    })
 
-        facets = None
-        if sort_field:
-            facets = FieldFacet(sort_field, reverse=sort_direction)
-        search_results = searcher.search(query, sortedby=facets, limit=None)
+        years = set()
+        teams = set()
 
-        for result in search_results:
-            results.append({
-                "id": result["id"],
-                "name": result["name"],
-                "year": result["year"],
-                "position": result["position"],
-                "points": result["points"],
-            })
+        with index.searcher() as searcher:
+            all_results = searcher.search(parser.parse("*"), limit=None)
+            for result in all_results:
+                years.add(result["year"])
+                teams.add(result["name"])
 
-    years = set()
-    teams = set()
+        years = sorted(years, reverse=True)
+        teams = sorted(teams)
 
-    with index.searcher() as searcher:
-        all_results = searcher.search(parser.parse("*"), limit=None)
-        for result in all_results:
-            years.add(result["year"])
-            teams.add(result["name"])
-
-    years = sorted(years, reverse=True)
-    teams = sorted(teams)
+    except (EmptyIndexError, FileNotFoundError):
+        results = []
+        years = []
+        teams = []
 
     return render(request, "team_standings.html", {
-        "team_standings": results,
+        "team_standings": results if selected_year or selected_team else [],
         "years": years,
         "teams": teams,
         "current_sort": sort_field,
@@ -274,6 +281,7 @@ def race_results(request):
         "years": years,
         "selected_year": selected_year, 
     })
+
 
 def race_results_detail(request, year, grand_prix_id):
     grand_prix = GrandPrix.objects.get(id=grand_prix_id)
