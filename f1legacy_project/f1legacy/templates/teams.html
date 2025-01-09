@@ -59,13 +59,13 @@
             {% if teams %}
             {% for team in teams %}
             <div class="team-card">
+                {% if team.image %}
                 <a href="{% url 'team_detail' team.id %}">
-                    {% if team.image %}
                     <img src="{{ team.image }}" alt="{{ team.name }}" class="driver-image">
-                    {% else %}
-                    <img src="{% static 'default_team.jpg' %}" alt="Default Team" class="driver-image">
-                    {% endif %}
                 </a>
+                {% else %}
+                <img src="{% static 'default_team.png' %}" alt="Default Team" class="driver-image">
+                {% endif %}
                 <div class="driver-info">
                     <h2 class="driver-name">{{ team.name }}</h2>
                 </div>

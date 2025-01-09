@@ -93,11 +93,11 @@ def add_driver_data(index):
             country_flag=driver.country_flag if driver.country_flag else None,
             team=str(driver.team.id) if driver.team else None,
             birth_date=driver.birth_date.strftime("%d-%m-%Y") if driver.birth_date else None,
-            points=driver.points if driver.points else None,
-            podiums=driver.podiums if driver.podiums else None,
-            championships=driver.championships if driver.championships else None,
+            points=driver.points,
+            podiums=driver.podiums,
+            championships=driver.championships,
             races=driver.races if driver.races else None,
-            victories=driver.victories if driver.victories else None,
+            victories=driver.victories,
             image=driver.image if driver.image else None,
         )
     writer.commit()
@@ -110,15 +110,15 @@ def add_team_data(index):
         writer.add_document(
             id=str(team.id),
             name=team.name,
-            base=team.base,
-            team_principal=team.team_principal,
-            chassis=team.chassis,
-            power_unit=team.power_unit,
+            base=team.base if team.base else None,
+            team_principal=team.team_principal if team.team_principal else None,
+            chassis=team.chassis if team.chassis else None,
+            power_unit=team.power_unit if team.power_unit else None,
             championships=team.championships,
-            victories=team.victories,
-            pole_positions=team.pole_positions,
-            fastest_laps=team.fastest_laps,
-            image=team.image,
+            victories=team.victories if team.victories else None,
+            pole_positions=team.pole_positions if team.pole_positions else None,
+            fastest_laps=team.fastest_laps if team.fastest_laps else None,
+            image=team.image if team.image else None,
         )
     writer.commit()
 

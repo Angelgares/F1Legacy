@@ -141,11 +141,11 @@ def get_drivers():
                     country_flag = None
                     team = None
                     birth_date = None
-                    points = None
-                    podiums = None
-                    victories = None
+                    points = 0
+                    podiums = 0
+                    victories = 0
                     races = None
-                    championships = None
+                    championships = 0
                     image = None
 
                 Driver.objects.update_or_create(
@@ -253,7 +253,7 @@ def get_teams():
                     image = parse_url(image)
 
                 except (AttributeError, IndexError):
-                    name = None
+                    name = detail_url.split("/")[-1].replace("-", " ").title()
                     base = None
                     team_principal = None
                     chassis = None
@@ -417,7 +417,6 @@ def get_grand_prixes(start_year, end_year):
                         start_date=start_date,
                         end_date=end_date,
                     )
-                    print(f"Grand Prix:", gp_name, location, start_date, end_date)
 
                 except requests.RequestException as e:
                     print(f"Error fetching grand prix data: {e}")
@@ -455,7 +454,6 @@ def get_grand_prixes(start_year, end_year):
                             position=position,
                             lap_time=lap_time,
                         )
-                        print(f"Starting grid:", driver, car, position, lap_time)
 
                 except requests.RequestException as e:
                     print(f"Error fetching starting grid data: {e}")
@@ -510,7 +508,6 @@ def get_grand_prixes(start_year, end_year):
                             total_time=total_time,
                             points=points,
                         )
-                        print(f"Race result:", driver, car, position, laps_completed, total_time, points)
                 
                 except requests.RequestException as e:
                     print(f"Error fetching race result data: {e}")

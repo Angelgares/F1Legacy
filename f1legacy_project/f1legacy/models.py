@@ -2,14 +2,14 @@ from django.db import models
 
 class Team(models.Model):
     name = models.CharField(max_length=100)
-    base = models.CharField(max_length=100)
-    team_principal = models.CharField(max_length=100)
-    chassis = models.CharField(max_length=100)
-    power_unit = models.CharField(max_length=100)
-    championships = models.PositiveIntegerField()
-    victories = models.PositiveIntegerField()
-    pole_positions = models.PositiveIntegerField()
-    fastest_laps = models.PositiveIntegerField()
+    base = models.CharField(max_length=100, blank=True, null=True)
+    team_principal = models.CharField(max_length=100, blank=True, null=True)
+    chassis = models.CharField(max_length=100, blank=True, null=True)
+    power_unit = models.CharField(max_length=100, blank=True, null=True)
+    championships = models.PositiveIntegerField(blank=True, null=True)
+    victories = models.PositiveIntegerField(blank=True, null=True)
+    pole_positions = models.PositiveIntegerField(blank=True, null=True)
+    fastest_laps = models.PositiveIntegerField(blank=True, null=True)
     image = models.URLField(blank=True, null=True)
 
     def __str__(self):
