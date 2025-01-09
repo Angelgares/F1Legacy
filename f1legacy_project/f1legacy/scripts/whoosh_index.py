@@ -91,7 +91,7 @@ def add_driver_data(index):
             number=driver.number if driver.number else None,
             country=driver.country if driver.country else None,
             country_flag=driver.country_flag if driver.country_flag else None,
-            team=str(driver.team.id) if driver.team else None,
+            team=str(driver.team.name) if driver.team.name else None,
             birth_date=driver.birth_date.strftime("%d-%m-%Y") if driver.birth_date else None,
             points=driver.points,
             podiums=driver.podiums,
